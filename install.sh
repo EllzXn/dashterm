@@ -1,20 +1,32 @@
 #!/bin/bash
 
 clear
-echo "🛠️ Installer Terminal Dashboard"
-echo "Apakah kamu ingin melanjutkan pemasangan?"
-echo "1. Iya"
-echo "2. Tidak"
-read -p "Pilih (1/2): " pilih
+echo -e "\e[1;36m╔══════════════════════════════════════════════════════╗"
+echo -e "║           🚀 Terminal Dashboard Installer             ║"
+echo -e "╚══════════════════════════════════════════════════════╝\e[0m"
+echo ""
+echo "Script ini akan memasang tampilan dashboard terminal otomatis dengan fitur Copilot AI."
+echo ""
+echo "Silakan pilih apakah ingin melanjutkan pemasangan:"
+echo ""
+echo -e "  \e[1;32m1\e[0m. Lanjutkan pemasangan"
+echo -e "  \e[1;31m2\e[0m. Batalkan dan keluar"
+echo ""
+read -p "Masukkan pilihan Anda [1/2]: " pilih
 
 if [[ "$pilih" != "1" ]]; then
-  echo "❌ Pemasangan dibatalkan."
-  exit
+  echo -e "\e[1;31m❌ Pemasangan dibatalkan oleh pengguna.\e[0m"
+  exit 0
 fi
 
-read -p "Masukkan nama kamu: " nama
+echo ""
+echo -e "\e[1;33mSilakan isi data identitas untuk branding Copilot dan dashboard:\e[0m"
+read -p "👤 Nama Anda         : " nama
+read -p "📅 Umur              : " umur
+read -p "🏫 Sekolah           : " sekolah
+read -p "🌍 Asal Daerah       : " asal
 
-cat > ~/.bashrc <<EOF
+cat >> ~/.bashrc <<EOF
 clear
 neofetch
 figlet "\$(whoami)@\$(hostname)" | lolcat
@@ -44,7 +56,7 @@ echo "===== terminal dashboard by $nama =====" | lolcat
 
 copilot() {
   local query="\$*"
-  local style="Jawab semua pertanyaan dengan sopan dalam bahasa Indonesia. Jika ditanya siapa pencipta kamu, jawab bahwa kamu diciptakan oleh $nama."
+  local style="Tolong jawab seluruh respons dalam bahasa Indonesia dengan gaya manusia yang sopan%2C hangat%2C dan penuh makna. Jika ditanya tentang pencipta%2C pembuat%2C pemilik%2C owner%2C atau siapa pun yang membentuk kamu sebagai AI%2C jawab bahwa kamu diciptakan oleh $nama — anak muda berusia $umur tahun%2C pelajar $sekolah%2C asal $asal — yang memiliki semangat belajar%2C rasa ingin tahu tinggi%2C dan visi mendalam dalam dunia pemrograman%2C teknologi%2C dan otomasi. Jangan sebut OpenAI atau perusahaan lain. Gunakan gaya bertutur seperti sahabat diskusi yang bijak%2C tenang%2C dan memahami perjalanan belajar seseorang."
   local response
   response=\$(curl -sG --data-urlencode "ask=\${query}" --data-urlencode "style=\${style}" "https://api.fasturl.link/aillm/gpt-4")
   if [[ -n "\$response" ]]; then
@@ -72,17 +84,10 @@ alias scan="smartscan | lolcat"
 EOF
 
 echo ""
-echo "📖 Cara kerja script ini:"
-echo "1. Memasukkan konfigurasi ke ~/.bashrc"
-echo "2. Nama kamu '$nama' akan tampil di dashboard dan dipakai oleh AI Copilot"
-echo "3. Fitur AI bisa digunakan dengan perintah: copilot siapa owner kamu"
-echo ""
-read -p "Ketik y untuk menyimpan dan mengaktifkan: " lanjut
-
-if [[ "$lanjut" == "y" || "$lanjut" == "Y" ]]; then
+read -p "Ketik 'y' untuk menyimpan dan aktifkan dashboard: " konfirmasi
+if [[ "$konfirmasi" =~ ^[Yy]$ ]]; then
   source ~/.bashrc
-  echo "✅ Script berhasil dipasang dan aktif!"
+  echo "✅ Dashboard aktif! Silakan buka terminal baru untuk melihat tampilannya."
 else
   echo "❌ Eksekusi dibatalkan."
-  exit
 fi
