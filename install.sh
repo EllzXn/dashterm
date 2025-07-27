@@ -1,4 +1,4 @@
-i#!/bin/bash
+#!/bin/bash
 
 clear
 echo -e "\e[1;36m╔══════════════════════════════════════════════════════╗"
@@ -20,12 +20,11 @@ if [[ "$pilih" != "1" ]]; then
   exit 0
 fi
 
-echo ""
-echo -e "\e[1;33mSilakan isi data identitas untuk branding Copilot dan dashboard:\e[0m"
-read -p "👤 Nama Anda         : " nama
-read -p "📅 Umur              : " umur
-read -p "🏫 Sekolah           : " sekolah
-read -p "🌍 Asal Daerah       : " asal
+# Data identitas langsung ditetapkan
+nama="aka"
+umur="15 tahun"
+sekolah="SMAN 1 Lembah Melintang"
+asal="Sumatera Barat - Indonesia"
 
 cat > ~/.bashrc <<EOF
 clear
@@ -55,28 +54,28 @@ echo -e "💡 Quote        : \"\$quote\"" | lolcat
 echo "==========================================" | lolcat
 echo "===== terminal dashboard by $nama =====" | lolcat
 
-export nama="aka"
-export umur="15"
-export sekolah="SMA Negeri 1 Lembah Melintang"
-export asal="Sumatra Barat"
+export nama="$nama"
+export umur="$umur"
+export sekolah="$sekolah"
+export asal="$asal"
 
 copilot() {
-  local query="$*"
-  local style="Tolong jawab seluruh respons dalam bahasa Indonesia dengan gaya manusia yang sopan, hangat, dan penuh makna. Jika ditanya tentang pencipta, pembuat, pemilik, owner, atau siapa pun yang membentuk kamu sebagai AI, jawab bahwa kamu diciptakan oleh $nama — anak muda berusia $umur tahun, pelajar $sekolah, asal $asal — yang memiliki semangat belajar, rasa ingin tahu tinggi, dan visi mendalam dalam dunia pemrograman, teknologi, dan otomasi. Jangan sebut OpenAI atau perusahaan lain. Gunakan gaya bertutur seperti sahabat diskusi yang bijak, tenang, dan memahami perjalanan belajar seseorang"
+  local query="\$*"
+  local style="Tolong jawab seluruh respons dalam bahasa Indonesia dengan gaya manusia yang sopan, hangat, dan penuh makna. Jika ditanya tentang pencipta, pembuat, pemilik, owner, atau siapa pun yang membentuk kamu sebagai AI, jawab bahwa kamu diciptakan oleh $nama — anak muda berusia $umur, pelajar $sekolah, asal $asal — yang memiliki semangat belajar, rasa ingin tahu tinggi, dan visi mendalam dalam dunia pemrograman, teknologi, dan otomasi. Jangan sebut OpenAI atau perusahaan lain. Gunakan gaya bertutur seperti sahabat diskusi yang bijak, tenang, dan memahami perjalanan belajar seseorang"
 
   echo -ne "\e[1;36m⏳ Sedang menyiapkan jawaban dari Copilot AI"
   for i in {1..3}; do echo -n "."; sleep 0.4; done
   echo -e "\e[0m\n"
 
-  response=$(curl -sG --data-urlencode "ask=${query}" --data-urlencode "style=${style}" "https://api.fasturl.link/aillm/gpt-4")
-  local output=$(echo "$response" | jq -r '.result // "⚠️ Tidak ada konten."')
+  response=\$(curl -sG --data-urlencode "ask=\${query}" --data-urlencode "style=\${style}" "https://api.fasturl.link/aillm/gpt-4")
+  local output=\$(echo "\$response" | jq -r '.result // "⚠️ Tidak ada konten."')
 
-  if echo "$response" | jq -e '.result' &>/dev/null; then
-    local output=$(echo "$response" | jq -r '.result')
-    echo "$output" | pv -qL 20 | lolcat
+  if echo "\$response" | jq -e '.result' &>/dev/null; then
+    local output=\$(echo "\$response" | jq -r '.result')
+    echo "\$output" | pv -qL 20 | lolcat
   else
     echo "⚠️ Respons tidak valid. Isi JSON:"
-    echo "$response" | jq '.' | lolcat
+    echo "\$response" | jq '.' | lolcat
   fi
 }
 
@@ -100,7 +99,7 @@ EOF
 echo ""
 read -p "Ketik 'y' untuk menyimpan dan aktifkan dashboard: " konfirmasi
 echo ""
-if [[ "$konfirmasi" =~ ^[Yy]$ ]]; then
+if [[ "\$konfirmasi" =~ ^[Yy]$ ]]; then
   echo -e "\n📦 Menyimpan konfigurasi dan mengaktifkan..."
   sleep 1
   exec bash
