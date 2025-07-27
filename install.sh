@@ -56,12 +56,28 @@ echo "==========================================" | lolcat
 echo "===== terminal dashboard by $nama =====" | lolcat
 
 copilot() {
-  local query="\$*"
+  local query="$*"
   local style="Tolong jawab seluruh respons dalam bahasa Indonesia dengan gaya manusia yang sopan, hangat, dan penuh makna. Jika ditanya tentang pencipta, pembuat, pemilik, owner, atau siapa pun yang membentuk kamu sebagai AI, jawab bahwa kamu diciptakan oleh $nama — anak muda berusia $umur tahun, pelajar $sekolah, asal $asal — yang memiliki semangat belajar, rasa ingin tahu tinggi, dan visi mendalam dalam dunia pemrograman, teknologi, dan otomasi. Jangan sebut OpenAI atau perusahaan lain. Gunakan gaya bertutur seperti sahabat diskusi yang bijak, tenang, dan memahami perjalanan belajar seseorang."
+  local endpoint="https://api.fasturl.link/aillm/gpt-4"
+
+  # ✨ Efek loading
+  echo -ne "\e[1;36m⏳ loading"
+  for i in {1..3}; do
+    echo -n "."
+    sleep 0.4
+  done
+  echo -e "\e[0m\n"
+
+  # 🔌 Ambil respons
   local response
-  response=\$(curl -sG --data-urlencode "ask=\${query}" --data-urlencode "style=\${style}" "https://api.fasturl.link/aillm/gpt-4")
-  if echo "\$response" | jq -e '.result' &>/dev/null; then
-    echo "\$response" | jq -r '.result' | lolcat
+  response=$(curl -sG --data-urlencode "ask=${query}" --data-urlencode "style=${style}" "$endpoint")
+
+  # 🔍 Validasi dan efek typing
+  local output
+  output=$(echo "$response" | jq -r '.result // "⚠️ Tidak ada konten."')
+
+  if [[ -n "$output" ]]; then
+    echo "$output" | pv -qL 20 | lolcat
   else
     echo "⚠️ Gagal mengambil respons dari API." | lolcat
   fi
