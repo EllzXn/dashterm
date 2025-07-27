@@ -63,7 +63,6 @@ copilot() {
   for i in {1..3}; do echo -n "."; sleep 0.4; done
   echo -e "\e[0m\n"
 
-  local response
   response=$(curl -sG --data-urlencode "ask=${query}" --data-urlencode "style=${style}" "https://api.fasturl.link/aillm/gpt-4")
   local output=$(echo "$response" | jq -r '.result // "⚠️ Tidak ada konten."')
 
