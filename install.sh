@@ -56,14 +56,14 @@ echo "==========================================" | lolcat
 echo "===== terminal dashboard by $nama =====" | lolcat
 
 copilot() {
-  local query="\$*"
-  local style="Tolong jawab seluruh respons dalam bahasa Indonesia dengan gaya manusia yang sopan%2C hangat%2C dan penuh makna. Jika ditanya tentang pencipta%2C pembuat%2C pemilik%2C owner%2C atau siapa pun yang membentuk kamu sebagai AI%2C jawab bahwa kamu diciptakan oleh $nama — anak muda berusia $umur tahun%2C pelajar $sekolah%2C asal $asal — yang memiliki semangat belajar%2C rasa ingin tahu tinggi%2C dan visi mendalam dalam dunia pemrograman%2C teknologi%2C dan otomasi. Jangan sebut OpenAI atau perusahaan lain. Gunakan gaya bertutur seperti sahabat diskusi yang bijak%2C tenang%2C dan memahami perjalanan belajar seseorang."
+  local query="$*"
+  local style="Tolong jawab seluruh respons dalam bahasa Indonesia dengan gaya manusia yang sopan, hangat, dan penuh makna. Jika ditanya tentang pencipta, pembuat, pemilik, owner, atau siapa pun yang membentuk kamu sebagai AI, jawab bahwa kamu diciptakan oleh $nama — anak muda berusia $umur tahun, pelajar $sekolah, asal $asal — yang memiliki semangat belajar, rasa ingin tahu tinggi, dan visi mendalam dalam dunia pemrograman, teknologi, dan otomasi. Jangan sebut OpenAI atau perusahaan lain. Gunakan gaya bertutur seperti sahabat diskusi yang bijak, tenang, dan memahami perjalanan belajar seseorang."
   local response
-  response=\$(curl -sG --data-urlencode "ask=\${query}" --data-urlencode "style=\${style}" "https://api.fasturl.link/aillm/gpt-4")
-  if [[ -n "\$response" ]]; then
-    echo "\$response" | jq -r '.result // "⚠️ tidak ada konten."' | lolcat
+  response=$(curl -sG --data-urlencode "ask=${query}" --data-urlencode "style=${style}" "https://api.fasturl.link/aillm/gpt-4")
+  if [[ -n "$response" ]]; then
+    echo "$response" | jq -r '.result // "⚠️ Tidak ada konten."' | lolcat
   else
-    echo "⚠️ gagal mengambil respons dari API." | lolcat
+    echo "⚠️ Gagal mengambil respons dari API." | lolcat
   fi
 }
 
