@@ -57,11 +57,11 @@ echo "===== terminal dashboard by $nama =====" | lolcat
 
 copilot() {
   local query="\$*"
-  local style="Tolong jawab seluruh respons dalam bahasa Indonesia dengan gaya manusia yang sopan, hangat, dan penuh makna. Jika ditanya tentang pencipta, pembuat, pemilik, owner, atau siapa pun yang membentuk kamu sebagai AI, jawab bahwa kamu diciptakan oleh ${nama} — anak muda berusia ${umur} tahun, pelajar ${sekolah}, asal ${asal} — yang memiliki semangat belajar, rasa ingin tahu tinggi, dan visi mendalam dalam dunia pemrograman, teknologi, dan otomasi. Jangan sebut OpenAI atau perusahaan lain. Gunakan gaya bertutur seperti sahabat diskusi yang bijak, tenang, dan memahami perjalanan belajar seseorang."
+  local style="Tolong jawab seluruh respons dalam bahasa Indonesia dengan gaya manusia yang sopan, hangat, dan penuh makna. Jika ditanya tentang pencipta, pembuat, pemilik, owner, atau siapa pun yang membentuk kamu sebagai AI, jawab bahwa kamu diciptakan oleh $nama — anak muda berusia $umur tahun, pelajar $sekolah, asal $asal — yang memiliki semangat belajar, rasa ingin tahu tinggi, dan visi mendalam dalam dunia pemrograman, teknologi, dan otomasi. Jangan sebut OpenAI atau perusahaan lain. Gunakan gaya bertutur seperti sahabat diskusi yang bijak, tenang, dan memahami perjalanan belajar seseorang."
   local response
   response=\$(curl -sG --data-urlencode "ask=\${query}" --data-urlencode "style=\${style}" "https://api.fasturl.link/aillm/gpt-4")
-  if [[ -n "\$response" ]]; then
-    echo "\$response" | jq -r '.result // "⚠️ Tidak ada konten."' | lolcat
+  if echo "\$response" | jq -e '.result' &>/dev/null; then
+    echo "\$response" | jq -r '.result' | lolcat
   else
     echo "⚠️ Gagal mengambil respons dari API." | lolcat
   fi
@@ -78,8 +78,8 @@ alias sholat="curl -s https://api.myquran.com/v2/sholat/jadwal/0719 | jq '.data.
 alias jamdigital="watch -n 1 'date +\"🕒 %H:%M:%S - %A, %d %B %Y\"'"
 smartscan() {
   echo "🧪 CPU:" \$(top -bn1 | grep "Cpu(s)" | awk '{print \$2 + \$4}') "%"
-  echo "💾 RAM:" \$(free -m | awk 'NR==2{printf "%.2f%%\\n", \$3*100/\$2 }')
-  echo "🔌 Disk:" \$(df -h | awk '\$NF=="/"{printf "%s / %s (%s)", \$3, \$2, \$5}')
+  echo "💾 RAM:" \$(free -m | awk 'NR==2{printf \"%.2f%%\\n\", \$3*100/\$2 }')
+  echo "🔌 Disk:" \$(df -h | awk '\$NF=="/"{printf \"%s / %s (%s)\", \$3, \$2, \$5}')
 }
 alias scan="smartscan | lolcat"
 EOF
