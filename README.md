@@ -4,7 +4,7 @@ DashTerm adalah sebuah proyek terminal prompt cerdas yang mengubah tampilan dan 
 
 ---
 
-![Preview](src/prev.jpeg)
+![Preview](src/prev.jpg)
 
 ---
 
