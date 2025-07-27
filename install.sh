@@ -1,4 +1,4 @@
-#!/bin/bash
+i#!/bin/bash
 
 clear
 echo -e "\e[1;36m╔══════════════════════════════════════════════════════╗"
@@ -66,12 +66,13 @@ copilot() {
   response=$(curl -sG --data-urlencode "ask=${query}" --data-urlencode "style=${style}" "https://api.fasturl.link/aillm/gpt-4")
   local output=$(echo "$response" | jq -r '.result // "⚠️ Tidak ada konten."')
 
-  if [[ -n "$output" ]]; then
-    echo "$output" | pv -qL 20 | lolcat
-  else
-    echo "⚠️ Gagal mengambil respons dari API." | lolcat
-  fi
-}
+  if echo "$response" | jq -e '.result' &>/dev/null; then
+  local output=$(echo "$response" | jq -r '.result')
+  echo "$output" | pv -qL 20 | lolcat
+else
+  echo "⚠️ Respons tidak valid. Isi JSON:"
+  echo "$response" | jq '.' | lolcat
+fi
 
 countdown() {
   local target=\$(date -d '2025-12-31' +%s)
