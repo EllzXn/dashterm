@@ -106,4 +106,7 @@ if [[ "$confirm" != "y" ]]; then
   exit 1
 fi
 
+
 echo -e "\e[1;32m✅ Dashboard berhasil disimpan dan akan aktif setelah terminal dibuka ulang.\e[0m"
+clear && source ~/.bashrc
+
