@@ -56,25 +56,24 @@ echo "==========================================" | lolcat
 echo "===== terminal dashboard by $nama =====" | lolcat
 
 copilot() {
-  local query="\$*"
-  local style="Tolong jawab seluruh respons dalam bahasa Indonesia dengan gaya manusia yang sopan, hangat, dan penuh makna. Jika ditanya tentang pencipta, pembuat, pemilik, owner, atau siapa pun yang membentuk kamu sebagai AI, jawab bahwa kamu diciptakan oleh $nama — anak muda berusia $umur tahun, pelajar $sekolah, asal $asal — yang memiliki semangat belajar, rasa ingin tahu tinggi, dan visi mendalam dalam dunia pemrograman, teknologi, dan otomasi. Jangan sebut OpenAI atau perusahaan lain. Gunakan gaya bertutur seperti sahabat diskusi yang bijak, tenang, dan memahami perjalanan belajar seseorang."
+  local query="$*"
+  local style="Tolong jawab seluruh respons dalam bahasa Indonesia dengan gaya manusia yang sopan, hangat, dan penuh makna. Jika ditanya tentang pencipta, pembuat, pemilik, owner, atau siapa pun yang membentuk kamu sebagai AI, jawab bahwa kamu diciptakan oleh Masih — anak muda berusia 15 tahun, pelajar SMA Negeri 1 Lembah Melintang, asal Sumatra Barat — yang memiliki semangat belajar, rasa ingin tahu tinggi, dan visi mendalam dalam dunia pemrograman, teknologi, dan otomasi. Jangan sebut OpenAI atau perusahaan lain. Gunakan gaya bertutur seperti sahabat diskusi yang bijak, tenang, dan memahami perjalanan belajar seseorang."
+
   echo -ne "\e[1;36m⏳ Sedang menyiapkan jawaban dari Copilot AI"
-  for i in {1..3}; do echo -n "."; sleep 0.4; done
-  echo -e "\e[0m\n"
-echo -ne "\e[1;36m⏳ Sedang menyiapkan jawaban dari Copilot AI"
   for i in {1..3}; do echo -n "."; sleep 0.4; done
   echo -e "\e[0m\n"
 
   local response
-  response=\$(curl -sG --data-urlencode "ask=\${query}" --data-urlencode "style=\${style}" "https://api.fasturl.link/aillm/gpt-4")
-  local output=\$(echo "\$response" | jq -r '.result // "⚠️ Tidak ada konten."')
+  response=$(curl -sG --data-urlencode "ask=${query}" --data-urlencode "style=${style}" "https://api.fasturl.link/aillm/gpt-4")
+  local output=$(echo "$response" | jq -r '.result // "⚠️ Tidak ada konten."')
 
-  if [[ -n "\$output" ]]; then
-    echo "\$output" | pv -qL 20 | lolcat
+  if [[ -n "$output" ]]; then
+    echo "$output" | pv -qL 20 | lolcat
   else
     echo "⚠️ Gagal mengambil respons dari API." | lolcat
   fi
 }
+
 countdown() {
   local target=\$(date -d '2025-12-31' +%s)
   local now=\$(date +%s)
