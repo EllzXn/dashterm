@@ -97,8 +97,9 @@ alias scan="smartscan | lolcat"
 EOF
 
 echo ""
-read -p "etik 'y' untuk menyimpan dan aktifkan dashboard: " confirm
-confirm="${confirm,,}" # ubah jadi huruf kecil semua
+read -p "Ketik 'y' untuk menyimpan dan aktifkan dashboard: " confirm
+confirm="$(echo "$confirm" | tr '[:upper:]' '[:lower:]' | xargs)" # ubah ke huruf kecil + hapus spasi
+
 if [[ "$confirm" != "y" ]]; then
   echo "❌  Eksekusi dibatalkan."
   exit 1
