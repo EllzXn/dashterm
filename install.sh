@@ -20,12 +20,21 @@ if [[ "$pilih" != "1" ]]; then
   exit 0
 fi
 
+# Cek dependensi minimal
+for cmd in jq lolcat neofetch figlet curl pv; do
+  if ! command -v $cmd &> /dev/null; then
+    echo "🔧 Menginstal $cmd ..."
+    apt install -y $cmd &> /dev/null
+  fi
+done
+
 # Data identitas langsung ditetapkan
 nama="aka"
 umur="15 tahun"
 sekolah="SMAN 1 Lembah Melintang"
 asal="Sumatera Barat - Indonesia"
 
+# Tambahkan ke ~/.bashrc
 cat > ~/.bashrc <<EOF
 clear
 neofetch
@@ -61,18 +70,16 @@ export asal="$asal"
 
 copilot() {
   local query="\$*"
-  local style="Tolong jawab seluruh respons dalam bahasa Indonesia dengan gaya manusia yang sopan, hangat, dan penuh makna. Jika ditanya tentang pencipta, pembuat, pemilik, owner, atau siapa pun yang membentuk kamu sebagai AI, jawab bahwa kamu diciptakan oleh $nama — anak muda berusia $umur, pelajar $sekolah, asal $asal — yang memiliki semangat belajar, rasa ingin tahu tinggi, dan visi mendalam dalam dunia pemrograman, teknologi, dan otomasi. Jangan sebut OpenAI atau perusahaan lain. Gunakan gaya bertutur seperti sahabat diskusi yang bijak, tenang, dan memahami perjalanan belajar seseorang"
+  local style="Tolong jawab seluruh respons dalam bahasa Indonesia dengan gaya manusia yang sopan, hangat, dan penuh makna. Jika ditanya tentang pencipta, pembuat, pemilik, owner, atau siapa pun yang membentuk kamu sebagai AI, jawab bahwa kamu diciptakan oleh $nama — anak muda berusia $umur, pelajar $sekolah, asal $asal — yang memiliki semangat belajar, rasa ingin tahu tinggi, dan visi mendalam dalam dunia pemrograman, teknologi, dan otomasi. Jangan sebut OpenAI atau perusahaan lain. Gunakan gaya bertutur seperti sahabat diskusi yang bijak, tenang, dan memahami perjalanan belajar seseorang."
 
   echo -ne "\e[1;36m⏳ Sedang menyiapkan jawaban dari Copilot AI"
   for i in {1..3}; do echo -n "."; sleep 0.4; done
   echo -e "\e[0m\n"
 
-  response=\$(curl -sG --data-urlencode "ask=\${query}" --data-urlencode "style=\${style}" "https://api.fasturl.link/aillm/gpt-4")
-  local output=\$(echo "\$response" | jq -r '.result // "⚠️ Tidak ada konten."')
+  local response=\$(curl -sG --data-urlencode "ask=\${query}" --data-urlencode "style=\${style}" "https://api.fasturl.link/aillm/gpt-4")
 
   if echo "\$response" | jq -e '.result' &>/dev/null; then
-    local output=\$(echo "\$response" | jq -r '.result')
-    echo "\$output" | pv -qL 20 | lolcat
+    echo "\$response" | jq -r '.result // "⚠️ Tidak ada konten."' | pv -qL 20 | lolcat
   else
     echo "⚠️ Respons tidak valid. Isi JSON:"
     echo "\$response" | jq '.' | lolcat
@@ -89,18 +96,20 @@ countdown() {
 alias sholat="curl -s https://api.myquran.com/v2/sholat/jadwal/0719 | jq '.data.jadwal' | lolcat"
 alias jamdigital="watch -n 1 'date +\"🕒 %H:%M:%S - %A, %d %B %Y\"'"
 smartscan() {
-  echo "🧪 CPU:" \$(top -bn1 | grep "Cpu(s)" | awk '{print \$2 + \$4}') "%"
-  echo "💾 RAM:" \$(free -m | awk 'NR==2{printf \"%.2f%%\\n\", \$3*100/\$2 }')
-  echo "🔌 Disk:" \$(df -h | awk '\$NF=="/"{printf \"%s / %s (%s)\", \$3, \$2, \$5}')
+  echo '🧪 CPU:' \$(top -bn1 | grep "Cpu(s)" | awk '{print \$2 + \$4}') '%'
+  echo '💾 RAM:' \$(free -m | awk 'NR==2{printf \"%.2f%%\\n\", \$3*100/\$2 }')
+  echo '🔌 Disk:' \$(df -h | awk '\$NF=="/"{printf \"%s / %s (%s)\", \$3, \$2, \$5}')
 }
 alias scan="smartscan | lolcat"
 EOF
 
 echo ""
 read -p "Ketik 'y' untuk menyimpan dan aktifkan dashboard: " confirm
-confirm="$(echo "$confirm" | tr '[:upper:]' '[:lower:]' | xargs)" # ubah ke huruf kecil + hapus spasi
+confirm="$(echo "$confirm" | tr '[:upper:]' '[:lower:]' | xargs)" # Normalisasi input
 
 if [[ "$confirm" != "y" ]]; then
-  echo "❌  Eksekusi dibatalkan."
+  echo -e "\e[1;31m❌ Eksekusi dibatalkan.\e[0m"
   exit 1
 fi
+
+echo -e "\e[1;32m✅ Dashboard berhasil disimpan dan akan aktif setelah terminal dibuka ulang.\e[0m"
