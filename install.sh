@@ -65,7 +65,6 @@ copilot() {
 
   local response
   response=\$(curl -sG --data-urlencode "ask=\${query}" --data-urlencode "style=\${style}" "https://api.fasturl.link/aillm/gpt-4")
-
   local output=\$(echo "\$response" | jq -r '.result // "⚠️ Tidak ada konten."')
 
   if [[ -n "\$output" ]]; then
@@ -93,9 +92,9 @@ alias scan="smartscan | lolcat"
 EOF
 
 echo ""
-read -n 1 -p "Ketik 'y' untuk menyimpan dan aktifkan dashboard: " konfirmasi
+read -p "Ketik 'y' untuk menyimpan dan aktifkan dashboard: " konfirmasi
 echo ""
-if [[ "$konfirmasi" =~ ^[Yy]$ ]]; then
+if [[ "\$konfirmasi" =~ ^[Yy]$ ]]; then
   echo -e "\n📦 Menyimpan konfigurasi dan mengaktifkan..."
   sleep 1
   exec bash
