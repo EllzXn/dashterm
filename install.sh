@@ -57,7 +57,7 @@ echo "===== terminal dashboard by $nama =====" | lolcat
 
 copilot() {
   local query="$*"
-  local style="Jawab seluruh respons dalam bahasa Indonesia dengan gaya manusia yang sopan dan penuh makna. Jangan sebut perusahaan atau OpenAI."
+  local style="Jawab seluruh respons dalam bahasa Indonesia dengan gaya manusia yang sopan, hangat, dan penuh makna. Jangan sebut perusahaan atau OpenAI. Jelaskan seolah kamu berdialog sebagai sahabat."
   local endpoint="https://api.fasturl.link/aillm/gpt-4"
   local response
 
@@ -66,10 +66,10 @@ copilot() {
     --data-urlencode "style=${style}" \
     "$endpoint")
 
-  if [[ -n "$response" ]]; then
-    echo "$response" | jq -r '.result // "⚠️ Tidak ada konten."' | lolcat
+  if echo "$response" | jq -e '.result' &>/dev/null; then
+    echo "$response" | jq -r '.result' | lolcat
   else
-    echo "⚠️ Gagal mengambil respons dari API." | lolcat
+    echo "$response" | jq -r '.content // "⚠️ Gagal mengambil konten dari API."' | lolcat
   fi
 }
 
