@@ -15,6 +15,7 @@ echo ""
 read -p "Masukkan pilihan Anda [1/2]: " pilih
 
 if [[ "$pilih" != "1" ]]; then
+  clear
   echo -e "\e[1;31m❌ Pemasangan dibatalkan oleh pengguna.\e[0m"
   exit 0
 fi
@@ -26,7 +27,7 @@ read -p "📅 Umur              : " umur
 read -p "🏫 Sekolah           : " sekolah
 read -p "🌍 Asal Daerah       : " asal
 
-cat >> ~/.bashrc <<EOF
+cat > ~/.bashrc <<EOF
 clear
 neofetch
 figlet "\$(whoami)@\$(hostname)" | lolcat
@@ -84,11 +85,13 @@ alias scan="smartscan | lolcat"
 EOF
 
 echo ""
-read -p "Ketik 'y' untuk menyimpan dan aktifkan dashboard: " konfirmasi
+read -n 1 -p "Ketik 'y' untuk menyimpan dan aktifkan dashboard: " konfirmasi
+echo ""
 if [[ "$konfirmasi" =~ ^[Yy]$ ]]; then
   echo -e "\n📦 Menyimpan konfigurasi dan mengaktifkan..."
   sleep 1
-  source ~/.bashrc
+  exec bash
 else
-  echo "❌ Eksekusi dibatalkan."
+  echo -e "\n❌ Eksekusi dibatalkan."
+  exit 0
 fi
