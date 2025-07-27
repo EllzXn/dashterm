@@ -95,7 +95,7 @@ EOF
 echo ""
 read -n 1 -p "Ketik 'y' untuk menyimpan dan aktifkan dashboard: " konfirmasi
 echo ""
-if [[ "\$konfirmasi" =~ ^[Yy]$ ]]; then
+if [[ "\$konfirmasi" =~ ^[y]$ ]]; then
   echo -e "\n📦 Menyimpan konfigurasi dan mengaktifkan..."
   sleep 1
   exec bash
