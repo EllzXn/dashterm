@@ -97,13 +97,9 @@ alias scan="smartscan | lolcat"
 EOF
 
 echo ""
-read -p "Ketik 'y' untuk menyimpan dan aktifkan dashboard: " konfirmasi
-echo ""
-if [[ "\$konfirmasi" =~ ^[Yy]$ ]]; then
-  echo -e "\n📦 Menyimpan konfigurasi dan mengaktifkan..."
-  sleep 1
-  exec bash
-else
-  echo -e "\n❌ Eksekusi dibatalkan."
-  exit 0
+read -p "etik 'y' untuk menyimpan dan aktifkan dashboard: " confirm
+confirm="${confirm,,}" # ubah jadi huruf kecil semua
+if [[ "$confirm" != "y" ]]; then
+  echo "❌  Eksekusi dibatalkan."
+  exit 1
 fi
