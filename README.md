@@ -69,7 +69,10 @@ harus dengan awalan copilot buat teks perintah/promt untuk AI di terminal nya
 copilot hai ai
 ```
 ## ⚡ Cara atur promt ai nya
-silahkan liat pada bagian local style= 
+silahkan liat pada bagian 
+```code
+local style= "..."
+```
 
 ## 📌 Catatan Tambahan
 
