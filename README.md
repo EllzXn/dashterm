@@ -68,6 +68,9 @@ harus dengan awalan copilot buat teks perintah/promt untuk AI di terminal nya
 ```promt
 copilot hai ai
 ```
+## ⚡ Cara atur promt ai nya
+silahkan liat pada bagian local style= 
+
 ## 📌 Catatan Tambahan
 
 - Script ini aman untuk digunakan di server pribadi maupun publik.
