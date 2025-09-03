@@ -51,13 +51,13 @@ install_dashboard() {
   # Hapus block lama kalau ada
   sed -i "/$MARK_START/,/$MARK_END/d" "$BASHRC_FILE"
 
-  # Tambahkan konfigurasi baru (fixed neofetch)
+  # Tambahkan konfigurasi baru
   cat >> "$BASHRC_FILE" <<'EOF'
 # >>> CUSTOM TERMINAL DASHBOARD >>>
 clear
-neofetch --ascii_distro ubuntu --ascii_colors 1 2 3 4 5 6 \
- --disable uptime packages shell resolution de wm theme icons terminal cpu gpu memory
-
+echo " " 
+neofetch --disable uptime packages shell resolution de wm theme icons terminal cpu gpu memory
+echo " "
 figlet "$(whoami)@$(hostname)" | lolcat
 echo "=========== VPS SYSTEM MONITOR ===========" | lolcat
 echo -e "🕒 Login Time   : $(date '+%A, %d %B %Y - %H:%M:%S')" | lolcat
@@ -83,15 +83,36 @@ echo -e "💡 Quote        : \"$quote\"" | lolcat
 echo "==========================================" | lolcat
 echo "===== terminal dashboard by aka =====" | lolcat
 
-# Tambahan fungsi
-copilot() { ... }   # (fungsi tetap sama)
-countdown() { ... } # (fungsi tetap sama)
-smartscan() { ... } # (fungsi tetap sama)
+# Fungsi tambahan
+copilot() {
+  local query="$*"
+  local style="Jawab dengan bahasa Indonesia yang sopan dan hangat."
+  local response=$(curl -sG --data-urlencode "ask=${query}" --data-urlencode "style=${style}" "https://api.fasturl.link/aillm/gpt-4")
+  if echo "$response" | jq -e '.result' &>/dev/null; then
+    echo "$response" | jq -r '.result // "⚠️ Tidak ada konten."' | pv -qL 20 | lolcat
+  else
+    echo "⚠️ Respons tidak valid."
+  fi
+}
+
+countdown() {
+  local target=$(date -d '2025-12-31' +%s)
+  local now=$(date +%s)
+  local days=$(( (target - now) / 86400 ))
+  echo "$days hari menuju tahun baru!" | lolcat
+}
+
+smartscan() {
+  echo '🧪 CPU:' $(top -bn1 | grep "Cpu(s)" | awk '{print $2 + $4}') '%'
+  echo '💾 RAM:' $(free -m | awk 'NR==2{printf "%.2f%%\n", $3*100/$2 }')
+  echo '🔌 Disk:' $(df -h | awk '$NF=="/"{printf "%s / %s (%s)", $3, $2, $5}')
+}
 alias scan="smartscan | lolcat"
 # <<< CUSTOM TERMINAL DASHBOARD <<<
 EOF
 
-  echo -e "\e[1;32m✅ Dashboard berhasil di-install! Silakan buka ulang terminal.\e[0m"
+  echo -e "\e[1;32m✅ Dashboard berhasil di-install! Terminal akan restart...\e[0m"
+  exec bash
 }
 
 uninstall_dashboard() {
@@ -110,6 +131,8 @@ uninstall_dashboard() {
   fi
 
   echo -e "\e[1;36mℹ️ Hostname tetap seperti terakhir (tidak diubah).\e[0m"
+  echo -e "\e[1;32m🔄 Terminal akan restart...\e[0m"
+  exec bash
 }
 
 # Menu utama
