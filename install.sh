@@ -39,17 +39,18 @@ install_dashboard() {
     exit 1
   fi
 
-  # Cek dan instal dependensi
+  # Update & install dependensi
+  apt update -y &> /dev/null
   for cmd in jq lolcat neofetch figlet curl pv lsb-release; do
     if ! command -v $cmd &> /dev/null; then
       echo "🔧 Menginstal $cmd ..."
-      apt update -y &> /dev/null
       apt install -y $cmd &> /dev/null
     fi
   done
 
-  # Hapus dulu jika sudah ada block lama
+  # Bersihkan block lama & neofetch duplikat
   sed -i "/$MARK_START/,/$MARK_END/d" "$BASHRC_FILE"
+  sed -i '/neofetch/d' "$BASHRC_FILE"
 
   # Tambahkan konfigurasi baru
   cat >> "$BASHRC_FILE" <<'EOF'
@@ -134,7 +135,6 @@ uninstall_dashboard() {
     cp "$BACKUP_FILE" "$BASHRC_FILE"
     echo -e "\e[1;32m✅ Dashboard dihapus dan .bashrc dipulihkan dari backup.\e[0m"
   else
-    # kalau gak ada backup, cukup hapus block custom
     sed -i "/$MARK_START/,/$MARK_END/d" "$BASHRC_FILE"
     echo -e "\e[1;33m⚠️ Backup tidak ditemukan, block custom dihapus saja.\e[0m"
   fi
