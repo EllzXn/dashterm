@@ -8,11 +8,10 @@ MARK_START="# >>> CUSTOM TERMINAL DASHBOARD >>>"
 MARK_END="# <<< CUSTOM TERMINAL DASHBOARD <<<"
 STARTUP_FILES=("$HOME/.bashrc" "$HOME/.bash_profile" "$HOME/.profile")
 
-# Hapus neofetch lama di semua file startup
-clean_neofetch() {
+clean_dashboard() {
   for file in "${STARTUP_FILES[@]}"; do
     if [[ -f "$file" ]]; then
-      sed -i '/neofetch/d' "$file"
+      sed -i "/$MARK_START/,/$MARK_END/d" "$file"
     fi
   done
 }
@@ -53,40 +52,39 @@ install_dashboard() {
     fi
   done
 
-  clean_neofetch
-  sed -i "/$MARK_START/,/$MARK_END/d" "$BASHRC_FILE"
+  clean_dashboard
 
-  cat >> "$BASHRC_FILE" <<'EOF'
-# >>> CUSTOM TERMINAL DASHBOARD >>>
+  cat >> "$BASHRC_FILE" <<EOF
+$MARK_START
 clear
 echo " "
 neofetch --disable uptime packages shell resolution de wm theme icons terminal cpu gpu memory
 echo " "
-figlet "$(whoami)@$(hostname)" | lolcat
+figlet "\$(whoami)@\$(hostname)" | lolcat
 echo "=========== VPS SYSTEM MONITOR ===========" | lolcat
-echo -e "🕒 Login Time   : $(date '+%A, %d %B %Y - %H:%M:%S')" | lolcat
-echo -e "📡 IP Address   : $(hostname -I | awk '{print $1}')" | lolcat
-echo -e "📅 Booted Since : $(uptime -s)" | lolcat
-echo -e "⏱️ Uptime       : $(uptime -p)" | lolcat
-echo -e "🖥️ OS Name      : $(lsb_release -d | cut -f2)" | lolcat
-echo -e "📦 OS Version   : $(lsb_release -r | cut -f2)" | lolcat
-echo -e "👤 Username     : $(whoami)" | lolcat
-echo -e "🧠 CPU Model    : $(lscpu | grep 'Model name' | cut -d ':' -f2 | xargs)" | lolcat
-echo -e "🧮 CPU Cores    : $(nproc)" | lolcat
-gpuinfo=$(lspci | grep -i 'vga\|3d\|display' | cut -d ':' -f3 | xargs)
-[[ -z "$gpuinfo" ]] && gpuinfo="Tidak terdeteksi"
-echo -e "🎮 GPU Info     : $gpuinfo" | lolcat
-echo -e "💾 RAM Total    : $(free -h | grep Mem | awk '{print $2}')" | lolcat
-echo -e "📁 Disk Used    : $(df -h / | awk '$NF=="/"{print $3 " of " $2}')" | lolcat
-echo -e "⚙️ Load Average : $(uptime | awk -F'load average:' '{print $2}' | xargs)" | lolcat
-echo -e "🌐 DNS Servers  : $(grep nameserver /etc/resolv.conf | awk '{print $2}' | xargs)" | lolcat
+echo -e "🕒 Login Time   : \$(date '+%A, %d %B %Y - %H:%M:%S')" | lolcat
+echo -e "📡 IP Address   : \$(hostname -I | awk '{print \$1}')" | lolcat
+echo -e "📅 Booted Since : \$(uptime -s)" | lolcat
+echo -e "⏱️ Uptime       : \$(uptime -p)" | lolcat
+echo -e "🖥️ OS Name      : \$(lsb_release -d | cut -f2)" | lolcat
+echo -e "📦 OS Version   : \$(lsb_release -r | cut -f2)" | lolcat
+echo -e "👤 Username     : \$(whoami)" | lolcat
+echo -e "🧠 CPU Model    : \$(lscpu | grep 'Model name' | cut -d ':' -f2 | xargs)" | lolcat
+echo -e "🧮 CPU Cores    : \$(nproc)" | lolcat
+gpuinfo=\$(lspci | grep -i 'vga\\|3d\\|display' | cut -d ':' -f3 | xargs)
+[[ -z "\$gpuinfo" ]] && gpuinfo="Tidak terdeteksi"
+echo -e "🎮 GPU Info     : \$gpuinfo" | lolcat
+echo -e "💾 RAM Total    : \$(free -h | grep Mem | awk '{print \$2}')" | lolcat
+echo -e "📁 Disk Used    : \$(df -h / | awk '\$NF==\"/\"{print \$3 \" of \" \$2}')" | lolcat
+echo -e "⚙️ Load Average : \$(uptime | awk -F'load average:' '{print \$2}' | xargs)" | lolcat
+echo -e "🌐 DNS Servers  : \$(grep nameserver /etc/resolv.conf | awk '{print \$2}' | xargs)" | lolcat
 
-quote=$(curl -s https://api.quotable.io/random | jq -r '.content')
-[[ -z "$quote" ]] && quote="Tetap semangat dan jangan berhenti belajar."
-echo -e "💡 Quote        : \"$quote\"" | lolcat
+quote=\$(curl -s https://api.quotable.io/random | jq -r '.content')
+[[ -z "\$quote" ]] && quote="Tetap semangat dan jangan berhenti belajar."
+echo -e "💡 Quote        : \"\$quote\"" | lolcat
 echo "==========================================" | lolcat
 echo "===== terminal dashboard by aka =====" | lolcat
-# <<< CUSTOM TERMINAL DASHBOARD <<<
+$MARK_END
 EOF
 
   echo -e "\e[1;32m✅ Dashboard berhasil di-install! Restarting shell...\e[0m"
@@ -104,7 +102,7 @@ uninstall_dashboard() {
     cp "$BACKUP_FILE" "$BASHRC_FILE"
     echo -e "\e[1;32m✅ Dashboard dihapus dan .bashrc dipulihkan.\e[0m"
   else
-    sed -i "/$MARK_START/,/$MARK_END/d" "$BASHRC_FILE"
+    clean_dashboard
     echo -e "\e[1;33m⚠️ Backup tidak ditemukan, block custom dihapus saja.\e[0m"
   fi
 
