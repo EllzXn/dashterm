@@ -6,6 +6,16 @@ BACKUP_FILE="$HOME/.bashrc.backup"
 BASHRC_FILE="$HOME/.bashrc"
 MARK_START="# >>> CUSTOM TERMINAL DASHBOARD >>>"
 MARK_END="# <<< CUSTOM TERMINAL DASHBOARD <<<"
+STARTUP_FILES=("$HOME/.bashrc" "$HOME/.bash_profile" "$HOME/.profile")
+
+# Hapus neofetch lama di semua file startup
+clean_neofetch() {
+  for file in "${STARTUP_FILES[@]}"; do
+    if [[ -f "$file" ]]; then
+      sed -i '/neofetch/d' "$file"
+    fi
+  done
+}
 
 install_dashboard() {
   clear
@@ -14,32 +24,27 @@ install_dashboard() {
   echo -e "╚══════════════════════════════════════════════════════╝\e[0m"
   echo ""
 
-  # Pastikan script dijalankan sebagai root
   if [[ "$EUID" -ne 0 ]]; then
     echo -e "\e[1;31m⚠️ Harap jalankan script dengan sudo atau sebagai root.\e[0m"
     exit 1
   fi
 
-  # Backup .bashrc sekali aja
   if [[ ! -f "$BACKUP_FILE" ]]; then
     cp "$BASHRC_FILE" "$BACKUP_FILE"
     echo -e "\e[1;33m📦 Backup .bashrc disimpan di $BACKUP_FILE\e[0m"
   fi
 
-  # Ubah hostname (hanya saat install)
   read -p "Masukkan hostname baru (contoh: AkaServer): " newhost
   if [[ -n "$newhost" ]]; then
     hostnamectl set-hostname "$newhost"
     echo -e "\e[1;32m✅ Hostname berhasil diubah menjadi: $newhost\e[0m"
   fi
 
-  # Cek koneksi internet
   if ! ping -c 1 google.com &> /dev/null; then
-    echo -e "\e[1;31m⚠️ Tidak ada koneksi internet. Silakan cek jaringan Anda.\e[0m"
+    echo -e "\e[1;31m⚠️ Tidak ada koneksi internet.\e[0m"
     exit 1
   fi
 
-  # Cek dan instal dependensi
   for cmd in jq lolcat neofetch figlet curl pv lsb-release; do
     if ! command -v $cmd &> /dev/null; then
       echo "🔧 Menginstal $cmd ..."
@@ -48,14 +53,13 @@ install_dashboard() {
     fi
   done
 
-  # Hapus block lama kalau ada
+  clean_neofetch
   sed -i "/$MARK_START/,/$MARK_END/d" "$BASHRC_FILE"
 
-  # Tambahkan konfigurasi baru
   cat >> "$BASHRC_FILE" <<'EOF'
 # >>> CUSTOM TERMINAL DASHBOARD >>>
 clear
-echo " " 
+echo " "
 neofetch --disable uptime packages shell resolution de wm theme icons terminal cpu gpu memory
 echo " "
 figlet "$(whoami)@$(hostname)" | lolcat
@@ -82,36 +86,10 @@ quote=$(curl -s https://api.quotable.io/random | jq -r '.content')
 echo -e "💡 Quote        : \"$quote\"" | lolcat
 echo "==========================================" | lolcat
 echo "===== terminal dashboard by aka =====" | lolcat
-
-# Fungsi tambahan
-copilot() {
-  local query="$*"
-  local style="Jawab dengan bahasa Indonesia yang sopan dan hangat."
-  local response=$(curl -sG --data-urlencode "ask=${query}" --data-urlencode "style=${style}" "https://api.fasturl.link/aillm/gpt-4")
-  if echo "$response" | jq -e '.result' &>/dev/null; then
-    echo "$response" | jq -r '.result // "⚠️ Tidak ada konten."' | pv -qL 20 | lolcat
-  else
-    echo "⚠️ Respons tidak valid."
-  fi
-}
-
-countdown() {
-  local target=$(date -d '2025-12-31' +%s)
-  local now=$(date +%s)
-  local days=$(( (target - now) / 86400 ))
-  echo "$days hari menuju tahun baru!" | lolcat
-}
-
-smartscan() {
-  echo '🧪 CPU:' $(top -bn1 | grep "Cpu(s)" | awk '{print $2 + $4}') '%'
-  echo '💾 RAM:' $(free -m | awk 'NR==2{printf "%.2f%%\n", $3*100/$2 }')
-  echo '🔌 Disk:' $(df -h | awk '$NF=="/"{printf "%s / %s (%s)", $3, $2, $5}')
-}
-alias scan="smartscan | lolcat"
 # <<< CUSTOM TERMINAL DASHBOARD <<<
 EOF
 
-  echo -e "\e[1;32m✅ Dashboard berhasil di-install! Terminal akan restart...\e[0m"
+  echo -e "\e[1;32m✅ Dashboard berhasil di-install! Restarting shell...\e[0m"
   exec bash
 }
 
@@ -124,18 +102,17 @@ uninstall_dashboard() {
 
   if [[ -f "$BACKUP_FILE" ]]; then
     cp "$BACKUP_FILE" "$BASHRC_FILE"
-    echo -e "\e[1;32m✅ Dashboard dihapus dan .bashrc dipulihkan dari backup.\e[0m"
+    echo -e "\e[1;32m✅ Dashboard dihapus dan .bashrc dipulihkan.\e[0m"
   else
     sed -i "/$MARK_START/,/$MARK_END/d" "$BASHRC_FILE"
     echo -e "\e[1;33m⚠️ Backup tidak ditemukan, block custom dihapus saja.\e[0m"
   fi
 
   echo -e "\e[1;36mℹ️ Hostname tetap seperti terakhir (tidak diubah).\e[0m"
-  echo -e "\e[1;32m🔄 Terminal akan restart...\e[0m"
+  echo -e "\e[1;32m✅ Uninstall selesai! Restarting shell...\e[0m"
   exec bash
 }
 
-# Menu utama
 clear
 echo -e "\e[1;36m╔══════════════════════════════════════════════════════╗"
 echo -e "║                ⚡ Dashboard Manager                   ║"
