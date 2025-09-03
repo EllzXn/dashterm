@@ -1,350 +1,413 @@
 #!/bin/bash
 set -euo pipefail
 
-# Dashboard installer (improved version)
+# Terminal Dashboard Installer - Complete Recode
+# Prevents logo duplication and ensures accurate data
+
 BACKUP_FILE="$HOME/.bashrc.backup"
 BASHRC_FILE="$HOME/.bashrc"
-MARK_START="# >>> CUSTOM TERMINAL DASHBOARD >>>"
-MARK_END="# <<< CUSTOM TERMINAL DASHBOARD <<<"
-STARTUP_FILES=("$HOME/.bashrc" "$HOME/.bash_profile" "$HOME/.profile")
+PROFILE_FILE="$HOME/.profile"
+BASH_PROFILE_FILE="$HOME/.bash_profile"
+DASHBOARD_MARK="### TERMINAL_DASHBOARD_ACTIVE ###"
 
-# Bersihkan semua block dashboard lama + pemanggilan neofetch/figlet di semua startup files
-clean_old() {
-  for f in "${STARTUP_FILES[@]}"; do
-    if [[ -f "$f" ]]; then
-      # hapus block marker lama
-      sed -i "/$MARK_START/,/$MARK_END/d" "$f" 2>/dev/null || true
-      # hapus pemanggilan neofetch / figlet yang standalone
-      sed -i '/^\s*neofetch\s*$/d' "$f" 2>/dev/null || true
-      sed -i '/^\s*figlet\s/d' "$f" 2>/dev/null || true
-    fi
-  done
-}
+# Colors for output
+RED='\033[1;31m'
+GREEN='\033[1;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[1;34m'
+CYAN='\033[1;36m'
+NC='\033[0m' # No Color
 
-# Deteksi package manager dan install dependencies
-install_deps_if_missing() {
-  local pkgs=(jq lolcat neofetch figlet curl pv)
-  local need_update=0
-  
-  # Cek apakah ada package yang belum terinstall
-  for cmd in "${pkgs[@]}"; do
-    if ! command -v "$cmd" &>/dev/null; then
-      need_update=1
-      break
-    fi
-  done
-  
-  if [[ $need_update -eq 1 ]]; then
-    echo "🔧 Memeriksa & memasang dependensi (butuh root)..."
+log_info() { echo -e "${CYAN}ℹ️  $1${NC}"; }
+log_success() { echo -e "${GREEN}✅ $1${NC}"; }
+log_warning() { echo -e "${YELLOW}⚠️  $1${NC}"; }
+log_error() { echo -e "${RED}❌ $1${NC}"; }
+
+# Complete cleanup of all dashboard traces
+cleanup_all_traces() {
+    log_info "Membersihkan semua jejak dashboard lama..."
     
-    # Deteksi distro dan package manager
-    if command -v apt &>/dev/null; then
-      # Debian/Ubuntu
-      apt update -y
-      apt install -y jq lolcat neofetch figlet curl pv lsb-release
-    elif command -v yum &>/dev/null; then
-      # RHEL/CentOS/Fedora (older)
-      yum update -y
-      yum install -y jq figlet curl pv redhat-lsb-core
-      # Install neofetch dan lolcat dari EPEL atau manual
-      yum install -y epel-release || true
-      yum install -y neofetch || echo "⚠️ neofetch perlu diinstall manual"
-      yum install -y lolcat || pip3 install lolcat 2>/dev/null || echo "⚠️ lolcat perlu diinstall manual"
-    elif command -v dnf &>/dev/null; then
-      # Fedora (newer)
-      dnf update -y
-      dnf install -y jq neofetch figlet curl pv redhat-lsb-core
-      dnf install -y lolcat || pip3 install lolcat 2>/dev/null || echo "⚠️ lolcat perlu diinstall manual"
-    elif command -v pacman &>/dev/null; then
-      # Arch Linux
-      pacman -Sy --noconfirm jq neofetch figlet curl pv lsb-release
-      pacman -S --noconfirm lolcat || pip3 install lolcat 2>/dev/null || echo "⚠️ lolcat perlu diinstall manual"
-    else
-      echo "⚠️ Package manager tidak dikenali. Pastikan dependencies sudah terinstall:"
-      echo "   jq, lolcat, neofetch, figlet, curl, pv, lsb-release"
-    fi
-  fi
+    # Files to clean
+    local files=("$BASHRC_FILE" "$PROFILE_FILE" "$BASH_PROFILE_FILE")
+    
+    for file in "${files[@]}"; do
+        if [[ -f "$file" ]]; then
+            # Remove dashboard marker lines
+            sed -i "/$DASHBOARD_MARK/d" "$file" 2>/dev/null || true
+            # Remove neofetch calls
+            sed -i '/^[[:space:]]*neofetch/d' "$file" 2>/dev/null || true
+            # Remove figlet calls with username/hostname
+            sed -i '/^[[:space:]]*figlet.*whoami.*hostname/d' "$file" 2>/dev/null || true
+            # Remove custom dashboard blocks
+            sed -i '/# >>> CUSTOM TERMINAL DASHBOARD >>>/,/# <<< CUSTOM TERMINAL DASHBOARD <<</d' "$file" 2>/dev/null || true
+        fi
+    done
+    
+    # Remove environment variables
+    unset DASHBOARD_SHOWN 2>/dev/null || true
+    unset DASHBOARD_LOADED 2>/dev/null || true
 }
 
-# Deteksi informasi sistem dengan fallback
-get_os_info() {
-  local os_name="Unknown"
-  local os_version="Unknown"
-  
-  if command -v lsb_release &>/dev/null; then
-    os_name=$(lsb_release -d 2>/dev/null | cut -f2 || echo "Unknown")
-    os_version=$(lsb_release -r 2>/dev/null | cut -f2 || echo "Unknown")
-  elif [[ -f /etc/os-release ]]; then
-    source /etc/os-release
-    os_name="${PRETTY_NAME:-$NAME}"
-    os_version="${VERSION_ID:-Unknown}"
-  elif [[ -f /etc/redhat-release ]]; then
-    os_name=$(cat /etc/redhat-release)
-    os_version="Unknown"
-  elif [[ -f /etc/debian_version ]]; then
-    os_name="Debian"
-    os_version=$(cat /etc/debian_version)
-  fi
-  
-  echo "$os_name|$os_version"
+# Detect package manager and install dependencies
+install_dependencies() {
+    log_info "Checking dan menginstall dependencies..."
+    
+    local deps_needed=()
+    local commands=("curl" "jq" "figlet" "lolcat" "neofetch")
+    
+    # Check what's missing
+    for cmd in "${commands[@]}"; do
+        if ! command -v "$cmd" &>/dev/null; then
+            deps_needed+=("$cmd")
+        fi
+    done
+    
+    if [[ ${#deps_needed[@]} -eq 0 ]]; then
+        log_success "Semua dependencies sudah terinstall"
+        return 0
+    fi
+    
+    log_info "Installing: ${deps_needed[*]}"
+    
+    # Detect OS and package manager
+    if command -v apt-get &>/dev/null; then
+        # Debian/Ubuntu
+        apt-get update -qq
+        apt-get install -y curl jq figlet ruby-full neofetch
+        gem install lolcat 2>/dev/null || {
+            apt-get install -y lolcat 2>/dev/null || log_warning "lolcat gagal diinstall"
+        }
+    elif command -v yum &>/dev/null; then
+        # RHEL/CentOS (old)
+        yum install -y epel-release
+        yum install -y curl jq figlet neofetch
+        gem install lolcat 2>/dev/null || log_warning "lolcat perlu diinstall manual"
+    elif command -v dnf &>/dev/null; then
+        # Fedora/RHEL 8+
+        dnf install -y curl jq figlet neofetch ruby rubygems
+        gem install lolcat 2>/dev/null || log_warning "lolcat perlu diinstall manual"
+    elif command -v pacman &>/dev/null; then
+        # Arch Linux
+        pacman -Sy --noconfirm curl jq figlet neofetch ruby
+        gem install lolcat 2>/dev/null || log_warning "lolcat perlu diinstall manual"
+    elif command -v zypper &>/dev/null; then
+        # openSUSE
+        zypper install -y curl jq figlet neofetch ruby
+        gem install lolcat 2>/dev/null || log_warning "lolcat perlu diinstall manual"
+    else
+        log_error "Package manager tidak dikenali!"
+        log_info "Silakan install manual: curl, jq, figlet, neofetch, lolcat"
+        return 1
+    fi
+    
+    log_success "Dependencies berhasil diinstall"
+}
+
+# Get system information with proper fallbacks
+get_system_info() {
+    local info_type="$1"
+    
+    case "$info_type" in
+        "os_name")
+            if [[ -f /etc/os-release ]]; then
+                source /etc/os-release
+                echo "${PRETTY_NAME:-${NAME:-Unknown}}"
+            elif command -v lsb_release &>/dev/null; then
+                lsb_release -d 2>/dev/null | cut -f2- || echo "Unknown"
+            elif [[ -f /etc/redhat-release ]]; then
+                cat /etc/redhat-release
+            elif [[ -f /etc/debian_version ]]; then
+                echo "Debian $(cat /etc/debian_version)"
+            else
+                uname -s || echo "Unknown"
+            fi
+            ;;
+        "os_version")
+            if [[ -f /etc/os-release ]]; then
+                source /etc/os-release
+                echo "${VERSION_ID:-${VERSION:-Unknown}}"
+            elif command -v lsb_release &>/dev/null; then
+                lsb_release -r 2>/dev/null | cut -f2 || echo "Unknown"
+            else
+                uname -r || echo "Unknown"
+            fi
+            ;;
+        "ip_address")
+            # Try multiple methods to get IP
+            local ip=""
+            ip=$(ip route get 8.8.8.8 2>/dev/null | grep -oP 'src \K\S+' | head -1) ||
+            ip=$(hostname -I 2>/dev/null | awk '{print $1}') ||
+            ip=$(ifconfig 2>/dev/null | grep -oE 'inet [0-9.]+' | grep -v '127.0.0.1' | head -1 | awk '{print $2}') ||
+            ip="Unknown"
+            echo "$ip"
+            ;;
+        "cpu_model")
+            grep '^model name' /proc/cpuinfo 2>/dev/null | head -1 | cut -d':' -f2 | sed 's/^[ \t]*//' || echo "Unknown"
+            ;;
+        "gpu_info")
+            if command -v lspci &>/dev/null; then
+                lspci 2>/dev/null | grep -i 'vga\|3d\|display' | head -1 | cut -d':' -f3 | sed 's/^[ \t]*//' || echo "Tidak terdeteksi"
+            else
+                echo "Tidak terdeteksi"
+            fi
+            ;;
+        "memory_total")
+            free -h 2>/dev/null | awk '/^Mem:/ {print $2}' || echo "Unknown"
+            ;;
+        "disk_usage")
+            df -h / 2>/dev/null | awk 'NR==2 {printf "%s / %s", $3, $2}' || echo "Unknown"
+            ;;
+        "load_average")
+            uptime 2>/dev/null | awk -F'load average:' '{print $2}' | sed 's/^[ \t]*//' || echo "Unknown"
+            ;;
+        "boot_time")
+            who -b 2>/dev/null | awk '{print $3, $4}' || uptime -s 2>/dev/null || echo "Unknown"
+            ;;
+        "uptime")
+            uptime -p 2>/dev/null || uptime 2>/dev/null | awk '{print $3, $4}' | sed 's/,//' || echo "Unknown"
+            ;;
+        "dns_servers")
+            awk '/^nameserver/ {printf "%s ", $2}' /etc/resolv.conf 2>/dev/null | xargs || echo "Unknown"
+            ;;
+    esac
+}
+
+# Get inspirational quote with timeout
+get_quote() {
+    local quote=""
+    if command -v curl &>/dev/null && command -v jq &>/dev/null; then
+        quote=$(timeout 3 curl -s "https://api.quotable.io/random" 2>/dev/null | jq -r '.content' 2>/dev/null || echo "")
+    fi
+    
+    if [[ -z "$quote" ]]; then
+        local quotes=(
+            "Kesuksesan adalah hasil dari persiapan yang baik, kerja keras, dan belajar dari kegagalan."
+            "Jangan takut untuk memulai. Hal-hal besar dimulai dari langkah kecil."
+            "Pengetahuan adalah investasi terbaik yang bisa kamu miliki."
+            "Coding bukan hanya tentang menulis kode, tapi tentang menyelesaikan masalah."
+            "Kegagalan adalah guru terbaik dalam perjalanan menuju kesuksesan."
+        )
+        quote="${quotes[$((RANDOM % ${#quotes[@]}))]}"
+    fi
+    
+    echo "$quote"
 }
 
 install_dashboard() {
-  clear
-  echo -e "\e[1;36m=== Terminal Dashboard Installer ===\e[0m"
-  
-  # cek root
-  if [[ "$EUID" -ne 0 ]]; then
-    echo -e "\e[1;31m⚠️ Harap jalankan script dengan sudo atau sebagai root.\e[0m"
-    exit 1
-  fi
-
-  # backup .bashrc (sekali)
-  if [[ ! -f "$BACKUP_FILE" ]]; then
-    cp "$BASHRC_FILE" "$BACKUP_FILE"
-    echo -e "\e[1;33m📦 Backup .bashrc disimpan di: $BACKUP_FILE\e[0m"
-  else
-    echo -e "\e[1;33m📦 Backup .bashrc sudah ada: $BACKUP_FILE\e[0m"
-  fi
-
-  read -r -p "Masukkan hostname baru (kosongkan untuk skip): " newhost
-  if [[ -n "$newhost" ]]; then
-    if command -v hostnamectl &>/dev/null; then
-      hostnamectl set-hostname "$newhost"
+    clear
+    echo -e "${CYAN}╔══════════════════════════════════════════╗${NC}"
+    echo -e "${CYAN}║        🚀 Installing Dashboard           ║${NC}"
+    echo -e "${CYAN}╚══════════════════════════════════════════╝${NC}"
+    
+    # Check if running as root
+    if [[ $EUID -ne 0 ]]; then
+        log_error "Script harus dijalankan dengan sudo atau sebagai root"
+        exit 1
+    fi
+    
+    # Create backup
+    if [[ ! -f "$BACKUP_FILE" ]]; then
+        cp "$BASHRC_FILE" "$BACKUP_FILE" 2>/dev/null || touch "$BACKUP_FILE"
+        log_success "Backup .bashrc dibuat: $BACKUP_FILE"
+    fi
+    
+    # Set hostname if requested
+    read -r -p "Masukkan hostname baru (Enter untuk skip): " new_hostname
+    if [[ -n "$new_hostname" ]]; then
+        if command -v hostnamectl &>/dev/null; then
+            hostnamectl set-hostname "$new_hostname"
+        else
+            echo "$new_hostname" > /etc/hostname
+            hostname "$new_hostname" 2>/dev/null || true
+        fi
+        log_success "Hostname diubah ke: $new_hostname"
+    fi
+    
+    # Test internet connection
+    if ! timeout 5 ping -c 1 8.8.8.8 &>/dev/null; then
+        log_warning "Tidak ada koneksi internet, melewati instalasi online dependencies"
     else
-      echo "$newhost" > /etc/hostname
-      hostname "$newhost"
-    fi
-    echo -e "\e[1;32m✅ Hostname diubah menjadi: $newhost\e[0m"
-  fi
-
-  # cek internet
-  if ! ping -c 1 -W 2 8.8.8.8 &>/dev/null && ! ping -c 1 -W 2 1.1.1.1 &>/dev/null; then
-    echo -e "\e[1;31m⚠️ Tidak ada koneksi internet. Periksa jaringan.\e[0m"
-    exit 1
-  fi
-
-  install_deps_if_missing
-
-  # bersihkan pemanggilan lama
-  clean_old
-
-  # tambahkan block baru ke ~/.bashrc
-  cat >> "$BASHRC_FILE" <<'EOF'
-# >>> CUSTOM TERMINAL DASHBOARD >>>
-# Hanya jalankan untuk interactive shells
-case "$-" in
-  *i*) ;;    # interactive
-  *) return ;;
-esac
-
-# Flag untuk mencegah pengulangan
-if [[ -z "${DASHBOARD_LOADED:-}" ]]; then
-  export DASHBOARD_LOADED=1
-  
-  # Bersihkan layar dan tampilkan dashboard
-  clear
-
-  # Function untuk mendapatkan info OS dengan fallback
-  get_os_info() {
-    local os_name="Unknown Linux"
-    local os_version="Unknown"
-    
-    if command -v lsb_release &>/dev/null; then
-      os_name=$(lsb_release -d 2>/dev/null | cut -f2- || echo "Unknown Linux")
-      os_version=$(lsb_release -r 2>/dev/null | cut -f2 || echo "Unknown")
-    elif [[ -f /etc/os-release ]]; then
-      source /etc/os-release 2>/dev/null
-      os_name="${PRETTY_NAME:-${NAME:-Unknown Linux}}"
-      os_version="${VERSION_ID:-Unknown}"
-    elif [[ -f /etc/redhat-release ]]; then
-      os_name=$(cat /etc/redhat-release 2>/dev/null || echo "Red Hat Linux")
-      os_version="Unknown"
-    elif [[ -f /etc/debian_version ]]; then
-      os_name="Debian GNU/Linux"
-      os_version=$(cat /etc/debian_version 2>/dev/null || echo "Unknown")
+        install_dependencies
     fi
     
-    echo "$os_name|$os_version"
-  }
-
-  # Function untuk mendapatkan info CPU
-  get_cpu_info() {
-    if [[ -f /proc/cpuinfo ]]; then
-      grep '^model name' /proc/cpuinfo | head -n1 | cut -d':' -f2 | xargs 2>/dev/null || echo "Unknown CPU"
+    # Clean any existing dashboard
+    cleanup_all_traces
+    
+    # Create the dashboard script
+    log_info "Membuat dashboard script..."
+    
+    # Add dashboard to .bashrc with single execution control
+    cat >> "$BASHRC_FILE" << 'DASHBOARD_EOF'
+### TERMINAL_DASHBOARD_ACTIVE ###
+# Terminal Dashboard - Single execution per session
+if [[ $- == *i* ]] && [[ -z "${DASHBOARD_EXECUTED:-}" ]]; then
+    export DASHBOARD_EXECUTED=1
+    
+    # Clear screen completely
+    printf '\033[2J\033[H'
+    
+    # System info functions
+    get_sys_info() {
+        case "$1" in
+            "os_name")
+                if [[ -f /etc/os-release ]]; then
+                    source /etc/os-release 2>/dev/null
+                    echo "${PRETTY_NAME:-${NAME:-Unknown Linux}}"
+                else
+                    echo "Unknown Linux"
+                fi
+                ;;
+            "os_version")
+                if [[ -f /etc/os-release ]]; then
+                    source /etc/os-release 2>/dev/null
+                    echo "${VERSION_ID:-${VERSION:-Unknown}}"
+                else
+                    uname -r 2>/dev/null || echo "Unknown"
+                fi
+                ;;
+            "ip_addr")
+                ip route get 8.8.8.8 2>/dev/null | grep -oP 'src \K\S+' | head -1 || \
+                hostname -I 2>/dev/null | awk '{print $1}' || \
+                echo "Unknown"
+                ;;
+            "cpu_model")
+                grep '^model name' /proc/cpuinfo 2>/dev/null | head -1 | cut -d':' -f2 | xargs || echo "Unknown CPU"
+                ;;
+            "gpu_info")
+                lspci 2>/dev/null | grep -i 'vga\|3d\|display' | head -1 | cut -d':' -f3 | xargs 2>/dev/null || echo "Tidak terdeteksi"
+                ;;
+        esac
+    }
+    
+    # Color output function
+    colorize() {
+        if command -v lolcat &>/dev/null; then
+            lolcat
+        else
+            cat
+        fi
+    }
+    
+    # Display neofetch ONLY ONCE with proper distro detection
+    if command -v neofetch &>/dev/null; then
+        # Detect distro for appropriate logo
+        if [[ -f /etc/os-release ]]; then
+            source /etc/os-release 2>/dev/null
+            distro_id="${ID:-linux}"
+        else
+            distro_id="linux"
+        fi
+        
+        # Show neofetch with detected distro, minimal info to prevent duplication
+        neofetch --ascii_distro "$distro_id" \
+                 --disable packages shell resolution de wm theme icons terminal \
+                 --cpu_temp off --gpu_brand off --refresh_rate off
     else
-      echo "Unknown CPU"
+        # Fallback ASCII if neofetch not available
+        echo "    ___    _____ _____ "
+        echo "   /   |  / ___//  _/ "
+        echo "  / /| |  \__ \ / /   "
+        echo " / ___ | ___/ // /    "
+        echo "/_/  |_|/____/___/    "
+        echo ""
     fi
-  }
-
-  # Function untuk mendapatkan info GPU
-  get_gpu_info() {
-    if command -v lspci &>/dev/null; then
-      local gpu=$(lspci 2>/dev/null | grep -i 'vga\|3d\|display' | head -n1 | cut -d':' -f3 | xargs 2>/dev/null)
-      [[ -n "$gpu" ]] && echo "$gpu" || echo "Tidak terdeteksi"
+    
+    # Display hostname with figlet
+    if command -v figlet &>/dev/null; then
+        figlet "$(whoami)@$(hostname)" | colorize
     else
-      echo "Tidak terdeteksi"
-    fi
-  }
-
-  # Function untuk mendapatkan DNS servers
-  get_dns_servers() {
-    if [[ -f /etc/resolv.conf ]]; then
-      awk '/^nameserver/ {printf "%s ", $2}' /etc/resolv.conf 2>/dev/null | xargs || echo "Unknown"
-    else
-      echo "Unknown"
-    fi
-  }
-
-  # Function untuk mendapatkan IP address
-  get_ip_address() {
-    # Coba berbagai metode untuk mendapatkan IP
-    local ip=""
-    if command -v hostname &>/dev/null; then
-      ip=$(hostname -I 2>/dev/null | awk '{print $1}')
+        echo "=== $(whoami)@$(hostname) ===" | colorize
     fi
     
-    if [[ -z "$ip" ]] && command -v ip &>/dev/null; then
-      ip=$(ip route get 8.8.8.8 2>/dev/null | grep -oP 'src \K\S+' | head -n1)
-    fi
+    # System information display
+    {
+        echo "============ SYSTEM MONITOR ============"
+        echo "🕒 Login Time   : $(date '+%A, %d %B %Y - %H:%M:%S')"
+        echo "📡 IP Address   : $(get_sys_info ip_addr)"
+        echo "📅 Boot Time    : $(who -b 2>/dev/null | awk '{print $3, $4}' || uptime -s 2>/dev/null || echo 'Unknown')"
+        echo "⏱️  Uptime       : $(uptime -p 2>/dev/null || uptime 2>/dev/null | awk '{print $3, $4}' | sed 's/,//' || echo 'Unknown')"
+        echo "🖥️  OS Name      : $(get_sys_info os_name)"
+        echo "📦 OS Version   : $(get_sys_info os_version)"
+        echo "👤 Username     : $(whoami)"
+        echo "🧠 CPU Model    : $(get_sys_info cpu_model)"
+        echo "🧮 CPU Cores    : $(nproc 2>/dev/null || echo 'Unknown')"
+        echo "🎮 GPU Info     : $(get_sys_info gpu_info)"
+        echo "💾 RAM Total    : $(free -h 2>/dev/null | awk '/^Mem:/ {print $2}' || echo 'Unknown')"
+        echo "📁 Disk Used    : $(df -h / 2>/dev/null | awk 'NR==2 {printf "%s / %s", $3, $2}' || echo 'Unknown')"
+        echo "⚙️  Load Average : $(uptime 2>/dev/null | awk -F'load average:' '{print $2}' | xargs || echo 'Unknown')"
+        echo "🌐 DNS Servers  : $(awk '/^nameserver/ {printf "%s ", $2}' /etc/resolv.conf 2>/dev/null | xargs || echo 'Unknown')"
+        
+        # Get quote with fallback
+        quote=""
+        if command -v curl &>/dev/null && command -v jq &>/dev/null; then
+            quote=$(timeout 2 curl -s https://api.quotable.io/random 2>/dev/null | jq -r '.content' 2>/dev/null || echo "")
+        fi
+        [[ -z "$quote" ]] && quote="Tetap semangat dan jangan pernah berhenti belajar!"
+        
+        echo "💡 Quote        : \"$quote\""
+        echo "========================================"
+        echo "===== Terminal Dashboard by AKA ======"
+    } | colorize
     
-    if [[ -z "$ip" ]]; then
-      ip=$(ifconfig 2>/dev/null | grep -oP 'inet \K192\.168\.\d+\.\d+' | head -n1)
-    fi
-    
-    [[ -n "$ip" ]] && echo "$ip" || echo "Unknown"
-  }
-
-  # Tampilkan neofetch jika tersedia (dengan fallback ASCII art)
-  if command -v neofetch &>/dev/null; then
-    # Deteksi distro untuk logo yang tepat
-    local distro_id=""
-    if [[ -f /etc/os-release ]]; then
-      distro_id=$(grep '^ID=' /etc/os-release 2>/dev/null | cut -d'=' -f2 | tr -d '"')
-    fi
-    
-    case "$distro_id" in
-      ubuntu) neofetch --ascii_distro ubuntu ;;
-      debian) neofetch --ascii_distro debian ;;
-      centos|rhel) neofetch --ascii_distro centos ;;
-      fedora) neofetch --ascii_distro fedora ;;
-      arch) neofetch --ascii_distro arch ;;
-      *) neofetch --ascii_distro linux ;;
-    esac
-  else
-    # Fallback ASCII art jika neofetch tidak ada
-    echo "
-  _     _                  
- | |   (_)_ __  _   ___  __
- | |   | | '_ \| | | \ \/ /
- | |___| | | | | |_| |>  < 
- |_____|_|_| |_|\__,_/_/\_\ 
-    "
-  fi
-
-  # Judul user@host
-  if command -v figlet &>/dev/null && command -v lolcat &>/dev/null; then
-    figlet "$(whoami)@$(hostname)" | lolcat
-  else
-    echo "=== $(whoami)@$(hostname) ==="
-  fi
-
-  # Informasi sistem
-  local info_command="echo"
-  if command -v lolcat &>/dev/null; then
-    info_command="lolcat"
-  fi
-
-  echo "=========== VPS SYSTEM MONITOR ===========" | $info_command
-  echo -e "🕒 Login Time   : $(date '+%A, %d %B %Y - %H:%M:%S')" | $info_command
-  echo -e "📡 IP Address   : $(get_ip_address)" | $info_command
-  
-  if command -v uptime &>/dev/null; then
-    echo -e "📅 Booted Since : $(uptime -s 2>/dev/null || echo 'Unknown')" | $info_command
-    echo -e "⏱️ Uptime       : $(uptime -p 2>/dev/null || uptime 2>/dev/null | cut -d',' -f1 | cut -d' ' -f3-)" | $info_command
-  fi
-  
-  # OS Info
-  local os_info=$(get_os_info)
-  echo -e "🖥️ OS Name      : ${os_info%|*}" | $info_command
-  echo -e "📦 OS Version   : ${os_info#*|}" | $info_command
-  
-  echo -e "👤 Username     : $(whoami)" | $info_command
-  echo -e "🧠 CPU Model    : $(get_cpu_info)" | $info_command
-  echo -e "🧮 CPU Cores    : $(nproc 2>/dev/null || echo 'Unknown')" | $info_command
-  echo -e "🎮 GPU Info     : $(get_gpu_info)" | $info_command
-  
-  if command -v free &>/dev/null; then
-    echo -e "💾 RAM Total    : $(free -h 2>/dev/null | awk '/^Mem:/ {print $2}' || echo 'Unknown')" | $info_command
-  fi
-  
-  if command -v df &>/dev/null; then
-    echo -e "📁 Disk Used    : $(df -h / 2>/dev/null | awk '$NF=="/" {printf "%s of %s", $3, $2}' || echo 'Unknown')" | $info_command
-  fi
-  
-  if command -v uptime &>/dev/null; then
-    echo -e "⚙️ Load Average : $(uptime 2>/dev/null | awk -F'load average:' '{print $2}' | xargs || echo 'Unknown')" | $info_command
-  fi
-  
-  echo -e "🌐 DNS Servers  : $(get_dns_servers)" | $info_command
-
-  # Quote dengan fallback
-  local quote=""
-  if command -v curl &>/dev/null && command -v jq &>/dev/null; then
-    quote=$(timeout 3 curl -sS https://api.quotable.io/random 2>/dev/null | jq -r '.content' 2>/dev/null || true)
-  fi
-  [[ -z "$quote" ]] && quote="Tetap semangat dan jangan berhenti belajar!"
-  echo -e "💡 Quote        : \"$quote\"" | $info_command
-  
-  echo "==========================================" | $info_command
-  echo "===== terminal dashboard by aka =====" | $info_command
 fi
-# <<< CUSTOM TERMINAL DASHBOARD <<<
-EOF
+### TERMINAL_DASHBOARD_ACTIVE ###
+DASHBOARD_EOF
 
-  echo -e "\n\e[1;32m✅ Dashboard berhasil dipasang ke: $BASHRC_FILE\e[0m"
-  echo -e "\e[1;36m🔄 Restarting shell (exec bash) agar perubahan aktif sekarang...\e[0m"
-  exec bash
+    log_success "Dashboard berhasil diinstall!"
+    log_info "Restart shell untuk melihat dashboard..."
+    
+    # Restart shell
+    exec bash
 }
 
 uninstall_dashboard() {
-  clear
-  echo -e "\e[1;31m=== Uninstall Terminal Dashboard ===\e[0m"
-
-  if [[ -f "$BACKUP_FILE" ]]; then
-    cp -f "$BACKUP_FILE" "$BASHRC_FILE"
-    echo -e "\e[1;32m✅ Restore .bashrc dari backup: $BACKUP_FILE\e[0m"
-  else
-    # jika backup tidak ada, hapus block custom dari semua startup files
-    for f in "${STARTUP_FILES[@]}"; do
-      if [[ -f "$f" ]]; then
-        sed -i "/$MARK_START/,/$MARK_END/d" "$f" 2>/dev/null || true
-      fi
-    done
-    echo -e "\e[1;33m⚠️ Backup tidak ditemukan, block custom dihapus dari startup files.\e[0m"
-  fi
-
-  echo -e "\e[1;36mℹ️ Hostname tidak diubah oleh uninstaller.\e[0m"
-  echo -e "\e[1;32m🔄 Restarting shell (exec bash)...\e[0m"
-  exec bash
+    clear
+    echo -e "${RED}╔══════════════════════════════════════════╗${NC}"
+    echo -e "${RED}║       🗑️  Uninstalling Dashboard        ║${NC}"
+    echo -e "${RED}╚══════════════════════════════════════════╝${NC}"
+    
+    cleanup_all_traces
+    
+    # Restore from backup if available
+    if [[ -f "$BACKUP_FILE" ]]; then
+        cp "$BACKUP_FILE" "$BASHRC_FILE"
+        log_success "Restored from backup: $BACKUP_FILE"
+    else
+        log_warning "No backup found, custom blocks removed"
+    fi
+    
+    log_success "Dashboard uninstalled successfully!"
+    exec bash
 }
 
-# ---- main menu ----
-clear
-cat <<'MENU'
-╔══════════════════════════════════════════════════════╗
-║                ⚡ Dashboard Manager                   ║
-╚══════════════════════════════════════════════════════╝
+# Main menu
+main_menu() {
+    clear
+    cat << 'MENU'
+╔════════════════════════════════════════════════════╗
+║               ⚡ Terminal Dashboard                 ║
+║                   Manager v2.0                     ║
+╚════════════════════════════════════════════════════╝
 
-1) Install Dashboard
-2) Uninstall Dashboard (restore .bashrc jika ada backup)
-3) Exit
+1️⃣  Install Dashboard
+2️⃣  Uninstall Dashboard  
+3️⃣  Exit
+
 MENU
 
-read -r -p "Pilih opsi [1/2/3]: " opsi
-case "$opsi" in
-  1) install_dashboard ;;
-  2) uninstall_dashboard ;;
-  3) echo "Keluar..."; exit 0 ;;
-  *) echo "Pilihan tidak valid."; exit 1 ;;
-esac
+    read -r -p "Pilih opsi [1-3]: " choice
+    
+    case "$choice" in
+        1) install_dashboard ;;
+        2) uninstall_dashboard ;;  
+        3) echo "Keluar..." && exit 0 ;;
+        *) 
+            log_error "Pilihan tidak valid!"
+            sleep 1
+            main_menu
+            ;;
+    esac
+}
+
+# Run main menu
+main_menu
