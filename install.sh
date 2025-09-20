@@ -1,36 +1,67 @@
 #!/bin/bash
 set -euo pipefail
 TARGET_USER="${SUDO_USER:-$USER}"
-TARGET_HOME="$(getent passwd "$TARGET_USER" | cut -d: -f6 2>/dev/null || echo "$HOME")"
+TARGET_HOME="$(getent passwd "$TARGET_USER" | cut -d: -f6 2>/dev/null || printf "%s" "$HOME")"
 BASHRC_FILE="$TARGET_HOME/.bashrc"
 BACKUP_FILE="$TARGET_HOME/.bashrc.backup"
-PROFILE_FILE="$TARGET_HOME/.profile"
-BASH_PROFILE_FILE="$TARGET_HOME/.bash_profile"
 DASHBOARD_MARK="### TERMINAL_DASHBOARD_ACTIVE ###"
-log() { printf "%b\n" "$1"; }
-cleanup_all_traces() {
-  for file in "$BASHRC_FILE" "$PROFILE_FILE" "$BASH_PROFILE_FILE"; do
-    [ -f "$file" ] || continue
-    sed -i "/^$DASHBOARD_MARK$/,/^$DASHBOARD_MARK$/d" "$file" 2>/dev/null || true
-    sed -i '/^[[:space:]]*neofetch/d' "$file" 2>/dev/null || true
-  done
-  unset DASHBOARD_EXECUTED 2>/dev/null || true
-}
-install_neofetch_if_needed() {
-  if command -v neofetch >/dev/null 2>&1; then return 0; fi
-  if command -v apt-get >/dev/null 2>&1; then sudo apt-get update -qq && sudo apt-get install -y neofetch >/dev/null 2>&1 || true
-  elif command -v dnf >/dev/null 2>&1; then sudo dnf install -y neofetch >/dev/null 2>&1 || true
-  elif command -v yum >/dev/null 2>&1; then sudo yum install -y epel-release >/dev/null 2>&1 || true; sudo yum install -y neofetch >/dev/null 2>&1 || true
-  elif command -v pacman >/dev/null 2>&1; then sudo pacman -Sy --noconfirm neofetch >/dev/null 2>&1 || true
-  elif command -v zypper >/dev/null 2>&1; then sudo zypper install -y neofetch >/dev/null 2>&1 || true
+say() { printf "%b\n" "$1"; }
+ask_userhost() {
+  say "Masukkan tampilan User@Host yang diinginkan."
+  say "Contoh: root@aka  (Enter untuk otomatis sesuai sistem)"
+  read -r -p "User@Host: " WANT_UH || true
+  if [ -n "${WANT_UH:-}" ] && ! printf "%s" "$WANT_UH" | grep -q "@"; then
+    WANT_UH="$(whoami 2>/dev/null || echo "$TARGET_USER")@$WANT_UH"
   fi
 }
-prompt_userhost() {
-  read -r -p "Tampilkan User@Host sebagai (mis. root@aka, kosong=otomatis): " WANT_UH || true
+install_neofetch() {
+  if command -v neofetch >/dev/null 2>&1; then
+    say "✓ Neofetch sudah terpasang"
+    return 0
+  fi
+  say "• Neofetch belum ada, mencoba memasang..."
+  if command -v apt-get >/dev/null 2>&1; then
+    sudo apt-get update -qq || true
+    sudo apt-get install -y neofetch >/dev/null 2>&1 || true
+  elif command -v dnf >/dev/null 2>&1; then
+    sudo dnf install -y neofetch >/dev/null 2>&1 || true
+  elif command -v yum >/dev/null 2>&1; then
+    sudo yum install -y epel-release >/dev/null 2>&1 || true
+    sudo yum install -y neofetch >/dev/null 2>&1 || true
+  elif command -v pacman >/dev/null 2>&1; then
+    sudo pacman -Sy --noconfirm neofetch >/dev/null 2>&1 || true
+  elif command -v zypper >/dev/null 2>&1; then
+    sudo zypper install -y neofetch >/dev/null 2>&1 || true
+  fi
+  if command -v neofetch >/dev/null 2>&1; then
+    say "✓ Neofetch berhasil dipasang"
+  else
+    say "• Gagal memasang neofetch via paket manager. Lanjut tanpa error."
+  fi
 }
-write_block() {
-  [ -f "$BACKUP_FILE" ] || cp "$BASHRC_FILE" "$BACKUP_FILE" 2>/dev/null || touch "$BACKUP_FILE"
+cleanup_old_block() {
+  say "• Memeriksa file nano target: $BASHRC_FILE"
   touch "$BASHRC_FILE" 2>/dev/null || sudo -u "$TARGET_USER" touch "$BASHRC_FILE"
+  if [ -f "$BASHRC_FILE" ]; then
+    if grep -q "^$DASHBOARD_MARK$" "$BASHRC_FILE"; then
+      say "• Ditemukan skrip lama. Menghapus blok lama..."
+      sed -i "/^$DASHBOARD_MARK$/,/^$DASHBOARD_MARK$/d" "$BASHRC_FILE" || true
+      say "✓ Skrip lama berhasil dihapus"
+    else
+      say "• Tidak ada blok lama yang terdeteksi"
+    fi
+  fi
+}
+backup_once() {
+  if [ ! -f "$BACKUP_FILE" ]; then
+    cp "$BASHRC_FILE" "$BACKUP_FILE" 2>/dev/null || touch "$BACKUP_FILE"
+    say "✓ Backup .bashrc dibuat: $BACKUP_FILE"
+  else
+    say "• Backup sebelumnya sudah ada: $BACKUP_FILE"
+  fi
+}
+write_new_block() {
+  say "• Menulis skrip dashboard baru ke $BASHRC_FILE"
   cat >> "$BASHRC_FILE" <<DASHBOARD_EOF
 $DASHBOARD_MARK
 if [[ \$- == *i* ]] && [[ -z "\${DASHBOARD_EXECUTED:-}" ]]; then
@@ -40,8 +71,7 @@ if [[ \$- == *i* ]] && [[ -z "\${DASHBOARD_EXECUTED:-}" ]]; then
   _has() { command -v "\$1" >/dev/null 2>&1; }
   _val() { local v="\$1"; [ -n "\$v" ] && printf "%s" "\$v" || printf "-"; }
   _pretty="Linux"
-  _id="linux"
-  if [ -f /etc/os-release ]; then . /etc/os-release 2>/dev/null || true; _pretty="\${PRETTY_NAME:-Linux}"; _id="\${ID:-linux}"; fi
+  if [ -f /etc/os-release ]; then . /etc/os-release 2>/dev/null || true; _pretty="\${PRETTY_NAME:-Linux}"; fi
   if _has neofetch; then
     if neofetch --help 2>/dev/null | grep -q "ascii_distro"; then
       neofetch --ascii_distro ubuntu_small --ascii --disable packages shell resolution de wm theme icons terminal cpu gpu memory disk battery localip publicip users uptime --stdout >/dev/null 2>&1 || true
@@ -81,13 +111,28 @@ if [[ \$- == *i* ]] && [[ -z "\${DASHBOARD_EXECUTED:-}" ]]; then
 fi
 $DASHBOARD_MARK
 DASHBOARD_EOF
+  say "✓ Penulisan selesai"
 }
-main() {
-  cleanup_all_traces
-  install_neofetch_if_needed
-  prompt_userhost
-  write_block
-  log "✅ Terpasang di $BASHRC_FILE"
-  if [[ $- == *i* ]]; then exec bash; else log "Jalankan: source \"$BASHRC_FILE\""; fi
+reload_terminal() {
+  say "• Membersihkan layar dan memuat ulang shell agar perubahan terlihat"
+  sleep 1
+  clear || printf "\033[2J\033[H"
+  if [[ $- == *i* ]]; then
+    exec bash -l
+  else
+    say "Jalankan perintah ini untuk memuat ulang: source \"$BASHRC_FILE\""
+  fi
 }
-main
+say "=== Terminal Dashboard Installer (Mini Neofetch) ==="
+say "Langkah 1/5: Memeriksa dan membackup file nano (.bashrc)"
+backup_once
+say "Langkah 2/5: Membersihkan skrip lama bila ada"
+cleanup_old_block
+say "Langkah 3/5: Memasang dependensi neofetch (mini) bila diperlukan"
+install_neofetch
+say "Langkah 4/5: Mengatur tampilan User@Host"
+ask_userhost
+say "Langkah 5/5: Menulis skrip dashboard baru"
+write_new_block
+say "Selesai. Lokasi konfigurasi: $BASHRC_FILE"
+reload_terminal
