@@ -62,6 +62,8 @@ backup_once() {
 }
 write_new_block() {
   say "• Menulis skrip dashboard baru ke $BASHRC_FILE"
+  # $WANT_UH akan diekspansi di sini oleh installer
+  # Variabel dengan \$ (seperti \$uh, \$ip) akan diekspansi saat .bashrc dijalankan
   cat >> "$BASHRC_FILE" <<DASHBOARD_EOF
 $DASHBOARD_MARK
 if [[ \$- == *i* ]] && [[ -z "\${DASHBOARD_EXECUTED:-}" ]]; then
@@ -73,9 +75,16 @@ if [[ \$- == *i* ]] && [[ -z "\${DASHBOARD_EXECUTED:-}" ]]; then
   _pretty="Linux"
   if [ -f /etc/os-release ]; then . /etc/os-release 2>/dev/null || true; _pretty="\${PRETTY_NAME:-Linux}"; fi
   if _has fastfetch; then
-    # Coba tampilkan logo Kali Linux, lalu kali_small, lalu default
     fastfetch --structure logo --logo kali 2>/dev/null || fastfetch --structure logo --logo kali_small 2>/dev/null || fastfetch --structure logo 2>/dev/null || true
   fi
+  
+  # Definisikan Warna (harus di-escape \\ agar ditulis literal ke file)
+  C_BORDER="\\033[90m" # Abu-abu (Bright Black)
+  C_LABEL="\\033[90m"  # Abu-abu
+  C_VALUE="\\033[96m"  # Cyan Terang
+  C_TIME="\\033[93m"   # Kuning Terang
+  C_RESET="\\033[0m"   # Reset
+  
   uh="\${DASH_USERHOST:-\$(whoami 2>/dev/null || echo -n "-")@\$(hostname 2>/dev/null || echo -n "-")}"
   ip="\$(ip route get 8.8.8.8 2>/dev/null | grep -oP 'src \\K\\S+' | head -1 || true)"; [ -n "\$ip" ] || ip="\$(hostname -I 2>/dev/null | awk '{print \$1}' || true)"
   kern="\$(uname -r 2>/dev/null || true)"
@@ -88,22 +97,24 @@ if [[ \$- == *i* ]] && [[ -z "\${DASHBOARD_EXECUTED:-}" ]]; then
   disk="\$(df -h / 2>/dev/null | awk 'NR==2 {printf "%s / %s", \$3, \$2}' || true)"
   load="\$(awk '{print \$1","\$2","\$3}' /proc/loadavg 2>/dev/null || true)"
   dns="\$(awk '/^nameserver/ {printf "%s ", \$2}' /etc/resolv.conf 2>/dev/null | xargs || true)"
-  echo "========================================"
-  echo "User@Host    : \$(_val "\$uh")"
-  echo "OS           : \$(_val "\$_pretty")"
-  echo "Kernel       : \$(_val "\$kern")"
-  echo "Login Time   : \$(date '+%A, %d %B %Y - %H:%M:%S')"
-  echo "Boot Time    : \$(_val "\$bt")"
-  echo "Uptime       : \$(_val "\$up")"
-  echo "IP Address   : \$(_val "\$ip")"
-  echo "CPU Model    : \$(_val "\$cpu")"
-  echo "CPU Cores    : \$(_val "\$cores")"
-  echo "GPU          : \$(_val "\$gpu")"
-  echo "RAM Total    : \$(_val "\$ram")"
-  echo "Disk Used    : \$(_val "\$disk")"
-  echo "Load Average : \$(_val "\$load")"
-  echo "DNS Servers  : \$(_val "\$dns")"
-  echo "========================================"
+  
+  # Cetak dengan warna
+  echo -e "\$C_BORDER========================================\$C_RESET"
+  echo -e "\$C_LABELUser@Host    : \$C_VALUE\$(_val "\$uh")\$C_RESET"
+  echo -e "\$C_LABELOS           : \$C_VALUE\$(_val "\$_pretty")\$C_RESET"
+  echo -e "\$C_LABELKernel       : \$C_VALUE\$(_val "\$kern")\$C_RESET"
+  echo -e "\$C_LABELLogin Time   : \$C_TIME\$(date '+%A, %d %B %Y - %H:%M:%S')\$C_RESET"
+  echo -e "\$C_LABELBoot Time    : \$C_TIME\$(_val "\$bt")\$C_RESET"
+  echo -e "\$C_LABELUptime       : \$C_TIME\$(_val "\$up")\$C_RESET"
+  echo -e "\$C_LABELIP Address   : \$C_VALUE\$(_val "\$ip")\$C_RESET"
+  echo -e "\$C_LABELCPU Model    : \$C_VALUE\$(_val "\$cpu")\$C_RESET"
+  echo -e "\$C_LABELCPU Cores    : \$C_VALUE\$(_val "\$cores")\$C_RESET"
+  echo -e "\$C_LABELGPU          : \$C_VALUE\$(_val "\$gpu")\$C_RESET"
+  echo -e "\$C_LABELRAM Total    : \$C_VALUE\$(_val "\$ram")\$C_RESET"
+  echo -e "\$C_LABELDisk Used    : \$C_VALUE\$(_val "\$disk")\$C_RESET"
+  echo -e "\$C_LABELLoad Average : \$C_VALUE\$(_val "\$load")\$C_RESET"
+  echo -e "\$C_LABELDNS Servers  : \$C_VALUE\$(_val "\$dns")\$C_RESET"
+  echo -e "\$C_BORDER========================================\$C_RESET"
 fi
 $DASHBOARD_MARK
 DASHBOARD_EOF
