@@ -19,7 +19,6 @@ install_fastfetch() {
     say "✓ Fastfetch sudah terpasang"
     return 0
   fi
-
   say "• Fastfetch belum ada, mencoba memasang..."
   if command -v apt-get >/dev/null 2>&1; then
     sudo apt-get update -qq || true
@@ -34,7 +33,6 @@ install_fastfetch() {
   elif command -v zypper >/dev/null 2>&1; then
     sudo zypper install -y fastfetch >/dev/null 2>&1 || true
   fi
-
   if command -v fastfetch >/dev/null 2>&1; then
     say "✓ Fastfetch berhasil dipasang"
   else
@@ -42,7 +40,7 @@ install_fastfetch() {
   fi
 }
 cleanup_old_block() {
-  say "• Memeriksa file nano target: $BASHRC_FILE"
+  say "• Memeriksa file target: $BASHRC_FILE"
   touch "$BASHRC_FILE" 2>/dev/null || sudo -u "$TARGET_USER" touch "$BASHRC_FILE"
   if [ -f "$BASHRC_FILE" ]; then
     if grep -q "^$DASHBOARD_MARK$" "$BASHRC_FILE"; then
@@ -75,11 +73,9 @@ if [[ \$- == *i* ]] && [[ -z "\${DASHBOARD_EXECUTED:-}" ]]; then
   _pretty="Linux"
   if [ -f /etc/os-release ]; then . /etc/os-release 2>/dev/null || true; _pretty="\${PRETTY_NAME:-Linux}"; fi
   if _has fastfetch; then
-    if fastfetch --help 2>/dev/null | grep -q -- --logo; then
-      fastfetch --logo ubuntu_small --disable-modules Packages,Shell,Resolution,DE,WM,Theme,Icons,Terminal
-    else
-      fastfetch --disable-modules Packages,Shell,Resolution,DE,WM,Theme,Icons,Terminal
-    fi
+    # Coba tampilkan logo ubuntu_small, jika gagal, tampilkan logo default.
+    # Info akan dicetak oleh skrip di bawah.
+    fastfetch --structure logo --logo ubuntu_small 2>/dev/null || fastfetch --structure logo 2>/dev/null || true
   fi
   uh="\${DASH_USERHOST:-\$(whoami 2>/dev/null || echo -n "-")@\$(hostname 2>/dev/null || echo -n "-")}"
   ip="\$(ip route get 8.8.8.8 2>/dev/null | grep -oP 'src \\K\\S+' | head -1 || true)"; [ -n "\$ip" ] || ip="\$(hostname -I 2>/dev/null | awk '{print \$1}' || true)"
@@ -125,11 +121,11 @@ reload_terminal() {
   fi
 }
 say "=== Terminal Dashboard Installer (Mini Fastfetch) ==="
-say "Langkah 1/5: Memeriksa dan membackup file nano (.bashrc)"
+say "Langkah 1/5: Memeriksa dan membackup file (.bashrc)"
 backup_once
 say "Langkah 2/5: Membersihkan skrip lama bila ada"
 cleanup_old_block
-say "Langkah 3/5: Memasang dependensi fastfetch bila diperlukan"
+say "Langkah 3/5: Memasang dependensi fastfetch (mini) bila diperlukan"
 install_fastfetch
 say "Langkah 4/5: Mengatur tampilan User@Host"
 ask_userhost
