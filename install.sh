@@ -73,9 +73,8 @@ if [[ \$- == *i* ]] && [[ -z "\${DASHBOARD_EXECUTED:-}" ]]; then
   _pretty="Linux"
   if [ -f /etc/os-release ]; then . /etc/os-release 2>/dev/null || true; _pretty="\${PRETTY_NAME:-Linux}"; fi
   if _has fastfetch; then
-    # Coba tampilkan logo ubuntu_small, jika gagal, tampilkan logo default.
-    # Info akan dicetak oleh skrip di bawah.
-    fastfetch --structure logo --logo ubuntu_small 2>/dev/null || fastfetch --structure logo 2>/dev/null || true
+    # Coba tampilkan logo Kali Linux, lalu kali_small, lalu default
+    fastfetch --structure logo --logo kali 2>/dev/null || fastfetch --structure logo --logo kali_small 2>/dev/null || fastfetch --structure logo 2>/dev/null || true
   fi
   uh="\${DASH_USERHOST:-\$(whoami 2>/dev/null || echo -n "-")@\$(hostname 2>/dev/null || echo -n "-")}"
   ip="\$(ip route get 8.8.8.8 2>/dev/null | grep -oP 'src \\K\\S+' | head -1 || true)"; [ -n "\$ip" ] || ip="\$(hostname -I 2>/dev/null | awk '{print \$1}' || true)"
