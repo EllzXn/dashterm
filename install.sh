@@ -14,12 +14,21 @@ ask_userhost() {
     WANT_UH="$(whoami 2>/dev/null || echo "$TARGET_USER")@$WANT_UH"
   fi
 }
-install_neofetch() {
+install_fetch_utils() {
   if command -v neofetch >/dev/null 2>&1; then
     say "✓ Neofetch sudah terpasang"
     return 0
   fi
-  say "• Neofetch belum ada, mencoba memasang..."
+  if command -v fastfetch >/dev/null 2>&1; then
+    say "✓ Fastfetch sudah terpasang"
+    return 0
+  fi
+
+  say "• Neofetch/Fastfetch belum ada, mencoba memasang..."
+  local installed_one=0
+
+  # Try Neofetch first
+  say "• Mencoba memasang Neofetch..."
   if command -v apt-get >/dev/null 2>&1; then
     sudo apt-get update -qq || true
     sudo apt-get install -y neofetch >/dev/null 2>&1 || true
@@ -33,10 +42,35 @@ install_neofetch() {
   elif command -v zypper >/dev/null 2>&1; then
     sudo zypper install -y neofetch >/dev/null 2>&1 || true
   fi
+
   if command -v neofetch >/dev/null 2>&1; then
     say "✓ Neofetch berhasil dipasang"
+    installed_one=1
   else
-    say "• Gagal memasang neofetch via paket manager. Lanjut tanpa error."
+    say "• Gagal memasang Neofetch, mencoba Fastfetch..."
+    # Try Fastfetch
+    if command -v apt-get >/dev/null 2>&1; then
+      sudo apt-get update -qq || true
+      sudo apt-get install -y fastfetch >/dev/null 2>&1 || true
+    elif command -v dnf >/dev/null 2>&1; then
+      sudo dnf install -y fastfetch >/dev/null 2>&1 || true
+    elif command -v yum >/dev/null 2>&1; then
+      # Fastfetch might be in epel, which was enabled for neofetch
+      sudo yum install -y fastfetch >/dev/null 2>&1 || true
+    elif command -v pacman >/dev/null 2>&1; then
+      sudo pacman -Sy --noconfirm fastfetch >/dev/null 2>&1 || true
+    elif command -v zypper >/dev/null 2>&1; then
+      sudo zypper install -y fastfetch >/dev/null 2>&1 || true
+    fi
+
+    if command -v fastfetch >/dev/null 2>&1; then
+      say "✓ Fastfetch berhasil dipasang"
+      installed_one=1
+    fi
+  fi
+
+  if [ "$installed_one" -eq 0 ]; then
+    say "• Gagal memasang neofetch & fastfetch via paket manager. Lanjut tanpa error."
   fi
 }
 cleanup_old_block() {
@@ -74,10 +108,15 @@ if [[ \$- == *i* ]] && [[ -z "\${DASHBOARD_EXECUTED:-}" ]]; then
   if [ -f /etc/os-release ]; then . /etc/os-release 2>/dev/null || true; _pretty="\${PRETTY_NAME:-Linux}"; fi
   if _has neofetch; then
     if neofetch --help 2>/dev/null | grep -q "ascii_distro"; then
-      neofetch --ascii_distro ubuntu_small --ascii --disable packages shell resolution de wm theme icons terminal cpu gpu memory disk battery localip publicip users uptime --stdout >/dev/null 2>&1 || true
       neofetch --ascii_distro ubuntu_small --ascii --disable packages shell resolution de wm theme icons terminal
     else
       neofetch --disable packages shell resolution de wm theme icons terminal
+    fi
+  elif _has fastfetch; then
+    if fastfetch --help 2>/dev/null | grep -q -- --logo; then
+      fastfetch --logo ubuntu_small --disable-modules Packages,Shell,Resolution,DE,WM,Theme,Icons,Terminal
+    else
+      fastfetch --disable-modules Packages,Shell,Resolution,DE,WM,Theme,Icons,Terminal
     fi
   fi
   uh="\${DASH_USERHOST:-\$(whoami 2>/dev/null || echo -n "-")@\$(hostname 2>/dev/null || echo -n "-")}"
@@ -123,13 +162,13 @@ reload_terminal() {
     say "Jalankan perintah ini untuk memuat ulang: source \"$BASHRC_FILE\""
   fi
 }
-say "=== Terminal Dashboard Installer (Mini Neofetch) ==="
+say "=== Terminal Dashboard Installer (Mini Neofetch/Fastfetch) ==="
 say "Langkah 1/5: Memeriksa dan membackup file nano (.bashrc)"
 backup_once
 say "Langkah 2/5: Membersihkan skrip lama bila ada"
 cleanup_old_block
-say "Langkah 3/5: Memasang dependensi neofetch (mini) bila diperlukan"
-install_neofetch
+say "Langkah 3/5: Memasang dependensi (neofetch/fastfetch) bila diperlukan"
+install_fetch_utils
 say "Langkah 4/5: Mengatur tampilan User@Host"
 ask_userhost
 say "Langkah 5/5: Menulis skrip dashboard baru"
